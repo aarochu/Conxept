@@ -144,6 +144,8 @@ def evaluate_row(row: Row) -> Outcome:
         problem = problem_from_id(row.problem_id)
     except KeyError:
         return Outcome(row, input_error=f"unknown problem id {row.problem_id!r}")
+    if len(row.steps) > problem.family.n_steps:
+        return Outcome(row, input_error=f"problem accepts at most {problem.family.n_steps} steps")
     if not row.steps:
         return Outcome(row, input_error="no steps")
     if any(not s for s in row.steps):
