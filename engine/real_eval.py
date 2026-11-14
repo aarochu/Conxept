@@ -81,7 +81,7 @@ def split_of(row_id: str) -> str:
 
 def read_rows(path: Path) -> tuple[list[Row], list[str]]:
     rows, errors, seen = [], [], set()
-    with path.open(newline="") as f:
+    with path.open(newline="", encoding="utf-8-sig") as f:
         for n, rec in enumerate(csv.DictReader(f), start=2):  # line 1 is the header
             rid = (rec.get("id") or "").strip()
             if not rid:
