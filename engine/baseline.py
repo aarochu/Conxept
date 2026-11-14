@@ -238,7 +238,9 @@ def summary_markdown(sample, model, effort, model_runs, engine_runs) -> str:
         "# Model-only baseline (spec section 8.5)",
         "",
         f"Sample: {len(sample)} submissions from the seed-{SAMPLE_SEED} synthetic class "
-        f"({MIX['correct']} correct, {MIX['catalog']} catalog errors, {MIX['heldout']} held-out).",
+        f"({sum(kind_of(s) == 'correct' for s in sample)} correct, "
+        f"{sum(kind_of(s) == 'catalog' for s in sample)} catalog errors, "
+        f"{sum(kind_of(s) == 'heldout' for s in sample)} held-out).",
         f"Model: `{model}`, effort `{effort}`. Engine: SymPy diagnosis.",
         "",
         "| Measure | Model | Engine |",
