@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package misconception.v1;
+
+import "misconception/v1/common.proto";
+import "misconception/v1/engine.proto";
+
+option go_package = "misconception/gen/go/misconception/v1;misconceptionv1";
+
+// Public service, Go + connect-go, called by the Angular app with the Connect protocol.
+service GatewayService {
+  rpc ListProblems(GatewayServiceListProblemsRequest) returns (GatewayServiceListProblemsResponse);
+  rpc ListMisconceptions(GatewayServiceListMisconceptionsRequest) returns (GatewayServiceListMisconceptionsResponse);
+  rpc SeedSyntheticClass(SeedSyntheticClassRequest) returns (SeedSyntheticClassResponse);
+  rpc ListClasses(ListClassesRequest) returns (ListClassesResponse);
+  rpc ProcessClass(ProcessClassRequest) returns (stream ProcessClassResponse);
+  rpc GetHeatmap(GetHeatmapRequest) returns (GetHeatmapResponse);
+  rpc GetClusters(GetClustersRequest) returns (GetClustersResponse);
+  rpc GetSubmission(GetSubmissionRequest) returns (GetSubmissionResponse);
+  rpc TryDerivation(TryDerivationRequest) returns (TryDerivationResponse);
+  rpc GenerateRemediation(GatewayServiceGenerateRemediationRequest) returns (GatewayServiceGenerateRemediationResponse);
+  rpc AnalyzeClass(AnalyzeClassRequest) returns (stream AnalyzeClassResponse);
+  rpc GetEvaluation(GetEvaluationRequest) returns (GetEvaluationResponse);
+}
+
+message GatewayServiceListProblemsRequest {}
+message GatewayServiceListProblemsResponse {
+  repeated Problem problems = 1;
+}
+
+message GatewayServiceListMisconceptionsRequest {}
+message GatewayServiceListMisconceptionsResponse {
+  repeated Misconception misconceptions = 1;
+}
+
+message ClassInfo {
+  string id = 1;
+  string name = 2;
+  int32 num_submissions = 3;
+  bool processed = 4;
+}
+
+message SeedSyntheticClassRequest {
+  string name = 1;
+  int32 num_students = 2;    // 1..200, default 60
+  int64 seed = 3;            // default 7
+  float error_rate = 4;      // default 0.6
+  float heldout_share = 5;   // default 0.25
+}
+message SeedSyntheticClassResponse {
+  ClassInfo class_info = 1;
+}
+
+message ListClassesRequest {}
+message ListClassesResponse {
+  repeated ClassInfo classes = 1;
+}
+
+message ProcessClassRequest {
+  string class_id = 1;
+}
+message ProcessClassResponse {
+  int32 done = 1;
+  int32 total = 2;
+}
+
+message GetHeatmapRequest {
+  string class_id = 1;
+}
+// One cell = one (problem, step). failed counts submissions whose FIRST divergence is at this step.
+message HeatmapCell {
+  string problem_id = 1;
+  int32 step_index = 2;
+  int32 failed = 3;
+  int32 attempted = 4;   // submissions that reached this step (all earlier steps valid)
+}
+message GetHeatmapResponse {
+  repeated HeatmapCell cells = 1;
+}
+
+message GetClustersRequest {
+  string class_id = 1;
+}
+message Cluster {
+  string key = 1;                       // misconception id, "residual:<name>", or "unclassified:<family>:<step>"
+  string name = 2;
+  int32 count = 3;
+  Family family = 4;
+  int32 step_index = 5;
+  bool in_catalog = 6;
+  repeated string example_submission_ids = 7;   // at most 5
+}
+message GetClustersResponse {
+  repeated Cluster clusters = 1;            // sorted by count, descending
+}
+
+message GetSubmissionRequest {
+  string submission_id = 1;
+}
+message GetSubmissionResponse {
+  Submission submission = 1;
+  Diagnosis diagnosis = 2;
+}
+
+message TryDerivationRequest {
+  string problem_id = 1;
+  repeated Step steps = 2;
+}
+message TryDerivationResponse {
+  Diagnosis diagnosis = 1;
+}
+
+message GatewayServiceGenerateRemediationRequest {
+  string misconception_id = 1;
+  int32 count = 2;
+  int64 seed = 3;
+}
+message GatewayServiceGenerateRemediationResponse {
+  repeated RemediationProblem problems = 1;
+}
+
+message AnalyzeClassRequest {
+  string class_id = 1;
+  string instruction = 2;
+}
+message AnalyzeClassResponse {
+  AnalyzeResponse event = 1;
+}
+
+message GetEvaluationRequest {
+  string class_id = 1;
+}
+message LabelScore {
+  string label = 1;
+  int32 true_positive = 2;
+  int32 false_positive = 3;
+  int32 false_negative = 4;
+}
+message GetEvaluationResponse {
+  int32 total = 1;
+  int32 correct_submissions = 2;
+  int32 false_alarms = 3;                 // correct submissions flagged as wrong
+  int32 divergence_step_correct = 4;      // flagged at the true step
+  int32 divergence_step_expected = 5;     // submissions that truly contain an error
+  int32 label_correct = 6;                // catalog errors whose id is in the returned labels
+  int32 label_expected = 7;
+  int32 heldout_detected = 8;
+  int32 heldout_expected = 9;
+  repeated LabelScore per_label = 10;
+}

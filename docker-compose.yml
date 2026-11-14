@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: misconception
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - pgdata:/var/lib/postgresql/data
+
+  # engine:   Python gRPC server on 50051 (lane A adds Dockerfile)
+  # gateway:  Go connect-go server on 8080 (lane B adds Dockerfile)
+
+volumes:
+  pgdata:

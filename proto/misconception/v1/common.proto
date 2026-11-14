@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package misconception.v1;
+
+option go_package = "misconception/gen/go/misconception/v1;misconceptionv1";
+
+// The four problem families supported in v1.
+enum Family {
+  FAMILY_UNSPECIFIED = 0;
+  FAMILY_INVERSE_LAPLACE_PF = 1;
+  FAMILY_CAUSAL_CONVOLUTION = 2;
+  FAMILY_FOURIER_TRANSFORM = 3;
+  FAMILY_LAPLACE_TIME_SHIFT = 4;
+}
+
+// What the student must produce at one step.
+message StepSpec {
+  int32 index = 1;     // 1-based; step 0 is the given and is never submitted
+  string kind = 2;     // equal | invL | conv_setup | ft_integral | L_shift
+  string prompt = 3;   // shown to the student, e.g. "Write F(s) as partial fractions"
+}
+
+message Problem {
+  string id = 1;                    // stable, e.g. "f1-p1-q2-n0"
+  Family family = 2;
+  string title = 3;
+  string given_latex = 4;
+  string given_expr = 5;            // Step DSL form of the given (may be empty for f2, f3)
+  repeated StepSpec steps = 6;
+  map<string, int32> params = 7;    // integer parameters used to build the instance
+}
+
+// One line of a student's derivation, in the Step DSL (see spec section 3).
+message Step {
+  int32 index = 1;
+  string expr = 2;
+}
+
+message Submission {
+  string id = 1;
+  string problem_id = 2;
+  string student_label = 3;         // synthetic or anonymized, never a real name
+  repeated Step steps = 4;
+}
+
+message Misconception {
+  string id = 1;                    // snake_case, unique, e.g. "cover_up_forgot_other_factor"
+  string name = 2;                  // human readable
+  string description = 3;
+  Family family = 4;
+  int32 step_index = 5;
+  string fix_hint = 6;
+}
+
+enum DiagnosisStatus {
+  DIAGNOSIS_STATUS_UNSPECIFIED = 0;
+  DIAGNOSIS_STATUS_VALID = 1;
+  DIAGNOSIS_STATUS_DIVERGED = 2;
+  DIAGNOSIS_STATUS_PARSE_ERROR = 3;
+}
+
+message Divergence {
+  int32 step_index = 1;
+  repeated string misconception_ids = 2;  // catalog matches; empty when only a residual label applies
+  string residual_label = 3;              // "residual:factor_2pi", "residual:sign_flip", or "unclassified"
+  string expected_latex = 4;              // correct move from the student's own previous step
+  string student_latex = 5;
+}
+
+message Diagnosis {
+  DiagnosisStatus status = 1;
+  Divergence divergence = 2;              // set when status is DIVERGED
+  string parse_error = 3;                 // set when status is PARSE_ERROR
+  int32 parse_error_step = 4;
+  int64 elapsed_ms = 5;
+}

@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package misconception.v1;
+
+import "misconception/v1/common.proto";
+
+option go_package = "misconception/gen/go/misconception/v1;misconceptionv1";
+
+// Internal service, Python. Called only by the Go gateway over gRPC.
+service EngineService {
+  rpc ListProblems(ListProblemsRequest) returns (ListProblemsResponse);
+  rpc ListMisconceptions(ListMisconceptionsRequest) returns (ListMisconceptionsResponse);
+  rpc Diagnose(DiagnoseRequest) returns (DiagnoseResponse);
+  rpc DiagnoseBatch(DiagnoseBatchRequest) returns (stream DiagnoseBatchResponse);
+  rpc GenerateRemediation(GenerateRemediationRequest) returns (GenerateRemediationResponse);
+  rpc GenerateClass(GenerateClassRequest) returns (GenerateClassResponse);
+}
+
+// Internal service, Python (same process). The Deep Agent behind "Analyze class".
+service InstructorAgentService {
+  rpc Analyze(AnalyzeRequest) returns (stream AnalyzeResponse);
+}
+
+message ListProblemsRequest {}
+message ListProblemsResponse {
+  repeated Problem problems = 1;
+}
+
+message ListMisconceptionsRequest {}
+message ListMisconceptionsResponse {
+  repeated Misconception misconceptions = 1;
+}
+
+message DiagnoseRequest {
+  string problem_id = 1;
+  repeated Step steps = 2;
+}
+message DiagnoseResponse {
+  Diagnosis diagnosis = 1;
+}
+
+message DiagnoseBatchRequest {
+  repeated Submission submissions = 1;
+}
+message SubmissionResult {
+  string submission_id = 1;
+  Diagnosis diagnosis = 2;
+}
+message DiagnoseBatchResponse {
+  int32 done = 1;
+  int32 total = 2;
+  repeated SubmissionResult results = 3;   // only the results finished since the previous message
+}
+
+message GenerateRemediationRequest {
+  string misconception_id = 1;
+  int32 count = 2;      // 1..5
+  int64 seed = 3;
+}
+message RemediationProblem {
+  Problem problem = 1;
+  string answer_key_latex = 2;
+  repeated string verification_routes = 3;   // e.g. "formula", "sympy_transform", "numeric_quad"
+  bool verified = 4;                         // true only when at least two routes agree
+  string why_it_discriminates = 5;           // the wrong answer this misconception would give, in LaTeX
+}
+message GenerateRemediationResponse {
+  repeated RemediationProblem problems = 1;
+}
+
+// Synthetic class generation. Ground truth is returned so evaluation can be computed.
+message GroundTruth {
+  string submission_id = 1;
+  int32 true_step_index = 2;       // 0 means the submission is correct
+  string true_label = 3;           // misconception id, "heldout:<kind>", or "" when correct
+}
+message GenerateClassRequest {
+  int32 num_students = 1;          // 1..200
+  int64 seed = 2;
+  repeated string problem_ids = 3; // empty means the default problem set
+  float error_rate = 4;            // 0..1 probability a submission contains an error
+  float heldout_share = 5;         // 0..1 share of errors that are NOT in the catalog
+}
+message GenerateClassResponse {
+  repeated Problem problems = 1;
+  repeated Submission submissions = 2;
+  repeated GroundTruth ground_truth = 3;
+}
+
+message AnalyzeRequest {
+  string class_id = 1;
+  string instruction = 2;           // optional extra instruction from the instructor
+}
+message ToolCallEvent {
+  string name = 1;
+  string arguments_text = 2;        // display only
+}
+message ToolResultEvent {
+  string name = 1;
+  string summary = 2;
+}
+message BriefEvent {
+  string brief_id = 1;
+  string markdown = 2;
+}
+message AnalyzeResponse {
+  oneof event {
+    string text_delta = 1;
+    ToolCallEvent tool_call = 2;
+    ToolResultEvent tool_result = 3;
+    BriefEvent brief = 4;
+    string error = 5;
+  }
+}
