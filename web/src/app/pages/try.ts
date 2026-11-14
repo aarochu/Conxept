@@ -37,17 +37,23 @@ const DEBOUNCE_MS = 350;
             @for (st of p.steps; track st.index; let i = $index) {
               <label class="field">
                 <span class="muted lbl">Step {{ st.index }}: {{ st.prompt }}</span>
-                <input class="mono" [ngModel]="steps()[i]" (ngModelChange)="setStep(i, $event)"
-                       spellcheck="false" autocomplete="off" maxlength="400" />
+                <input
+                  class="mono"
+                  [ngModel]="steps()[i]"
+                  (ngModelChange)="setStep(i, $event)"
+                  spellcheck="false"
+                  autocomplete="off"
+                  maxlength="400"
+                />
               </label>
             }
             <details class="dsl">
               <summary>Step DSL</summary>
               <p>
-                Variables <code>t tau w s</code>; <code>u(x)</code> or <code>step(x)</code> is the unit step;
-                <code>j</code> is the imaginary unit; <code>exp sin cos sqrt pi e inf</code>;
-                <code>int(f, var, lo, hi)</code> is a definite integral; <code>^</code> is power. Each step is the
-                right-hand side only.
+                Variables <code>t tau w s</code>; <code>u(x)</code> or <code>step(x)</code> is the
+                unit step; <code>j</code> is the imaginary unit;
+                <code>exp sin cos sqrt pi e inf</code>; <code>int(f, var, lo, hi)</code> is a
+                definite integral; <code>^</code> is power. Each step is the right-hand side only.
               </p>
             </details>
           }
@@ -57,7 +63,12 @@ const DEBOUNCE_MS = 350;
           @if (!diagnosis()) {
             <div class="empty">{{ checking() ? 'Checking…' : 'Start typing a step.' }}</div>
           } @else {
-            <app-derivation [exprs]="filled()" [diagnosis]="diagnosis()" [problem]="undefined" [names]="names()" />
+            <app-derivation
+              [exprs]="filled()"
+              [diagnosis]="diagnosis()"
+              [problem]="undefined"
+              [names]="names()"
+            />
             @if (diagnosis()?.status === 1 && filled().length < (problem()?.steps?.length ?? 0)) {
               <p class="muted small">Every step so far is valid.</p>
             }

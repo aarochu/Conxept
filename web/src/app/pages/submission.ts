@@ -16,7 +16,9 @@ import { DerivationView } from './derivation';
             <a routerLink="/">Classes</a> / <a [routerLink]="['/class', id()]">Dashboard</a> /
           </div>
           <h1>{{ submission()?.studentLabel ?? 'Submission' }}</h1>
-          <p class="sub">{{ problem()?.title }} <span class="mono">{{ submission()?.problemId }}</span></p>
+          <p class="sub">
+            {{ problem()?.title }} <span class="mono">{{ submission()?.problemId }}</span>
+          </p>
         </div>
       </div>
       @if (error()) {
@@ -24,7 +26,12 @@ import { DerivationView } from './derivation';
       }
       @if (submission()) {
         <section class="card">
-          <app-derivation [problem]="problem()" [exprs]="exprs()" [diagnosis]="diagnosis()" [names]="names()" />
+          <app-derivation
+            [problem]="problem()"
+            [exprs]="exprs()"
+            [diagnosis]="diagnosis()"
+            [names]="names()"
+          />
           @if (!diagnosis()) {
             <p class="note">This submission has not been processed yet.</p>
           }
@@ -58,7 +65,9 @@ export class SubmissionPage implements OnInit {
       ]);
       this.submission.set(res.submission);
       this.diagnosis.set(res.diagnosis);
-      this.exprs.set([...(res.submission?.steps ?? [])].sort((a, b) => a.index - b.index).map((s) => s.expr));
+      this.exprs.set(
+        [...(res.submission?.steps ?? [])].sort((a, b) => a.index - b.index).map((s) => s.expr),
+      );
       this.names.set(Object.fromEntries([...catalog].map(([k, m]) => [k, m.name])));
       if (res.submission) this.problem.set(await this.api.problem(res.submission.problemId));
     } catch (e) {

@@ -56,7 +56,10 @@ interface Progress {
                   <td class="num">{{ c.numSubmissions }}</td>
                   <td>
                     @if (progress()[c.id]; as p) {
-                      <div class="progress" [attr.aria-label]="'Processed ' + p.done + ' of ' + p.total">
+                      <div
+                        class="progress"
+                        [attr.aria-label]="'Processed ' + p.done + ' of ' + p.total"
+                      >
                         <div [style.width.%]="p.total ? (100 * p.done) / p.total : 100"></div>
                       </div>
                       <span class="muted small">{{ p.done }} / {{ p.total }}</span>

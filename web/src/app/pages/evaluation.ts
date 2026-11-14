@@ -15,7 +15,9 @@ import { Api, errorMessage, pct } from '../api';
             <a routerLink="/">Classes</a> / <a [routerLink]="['/class', id()]">Dashboard</a> /
           </div>
           <h1>Evaluation</h1>
-          <p class="sub">The engine's diagnoses compared with the synthetic class's ground truth.</p>
+          <p class="sub">
+            The engine's diagnoses compared with the synthetic class's ground truth.
+          </p>
         </div>
       </div>
       @if (error()) {
@@ -23,7 +25,9 @@ import { Api, errorMessage, pct } from '../api';
       }
       @if (ev(); as e) {
         @if (e.total === 0) {
-          <div class="card empty">This class has no ground truth (only synthetic classes do) or has not been processed.</div>
+          <div class="card empty">
+            This class has no ground truth (only synthetic classes do) or has not been processed.
+          </div>
         } @else {
           <div class="tiles">
             <div class="card tile">
@@ -34,22 +38,30 @@ import { Api, errorMessage, pct } from '../api';
             <div class="card tile">
               <div class="muted lbl">Step accuracy</div>
               <div class="big">{{ pct(e.divergenceStepCorrect, e.divergenceStepExpected) }}</div>
-              <div class="muted small">{{ e.divergenceStepCorrect }} of {{ e.divergenceStepExpected }} flagged at the true first wrong step</div>
+              <div class="muted small">
+                {{ e.divergenceStepCorrect }} of {{ e.divergenceStepExpected }} flagged at the true
+                first wrong step
+              </div>
             </div>
             <div class="card tile">
               <div class="muted lbl">Label accuracy</div>
               <div class="big">{{ pct(e.labelCorrect, e.labelExpected) }}</div>
-              <div class="muted small">{{ e.labelCorrect }} of {{ e.labelExpected }} catalog errors named correctly</div>
+              <div class="muted small">
+                {{ e.labelCorrect }} of {{ e.labelExpected }} catalog errors named correctly
+              </div>
             </div>
             <div class="card tile">
               <div class="muted lbl">Held-out detection</div>
               <div class="big">{{ pct(e.heldoutDetected, e.heldoutExpected) }}</div>
-              <div class="muted small">{{ e.heldoutDetected }} of {{ e.heldoutExpected }} errors outside the catalog caught</div>
+              <div class="muted small">
+                {{ e.heldoutDetected }} of {{ e.heldoutExpected }} errors outside the catalog caught
+              </div>
             </div>
           </div>
 
           <p class="note">
-            This is a synthetic class built from our own error catalog, so it tests consistency, not real students.
+            This is a synthetic class built from our own error catalog, so it tests consistency, not
+            real students.
           </p>
 
           @if (e.perLabel.length > 0) {

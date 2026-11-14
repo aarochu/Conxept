@@ -29,10 +29,18 @@ interface StepView {
             <span class="prompt">{{ s.prompt }}</span>
             <span class="state">
               @switch (s.state) {
-                @case ('valid') { <span class="badge ok">Valid</span> }
-                @case ('diverged') { <span class="badge bad">First wrong step</span> }
-                @case ('parse') { <span class="badge bad">Cannot read</span> }
-                @case ('unchecked') { <span class="badge">Not checked</span> }
+                @case ('valid') {
+                  <span class="badge ok">Valid</span>
+                }
+                @case ('diverged') {
+                  <span class="badge bad">First wrong step</span>
+                }
+                @case ('parse') {
+                  <span class="badge bad">Cannot read</span>
+                }
+                @case ('unchecked') {
+                  <span class="badge">Not checked</span>
+                }
               }
             </span>
           </div>
@@ -55,7 +63,9 @@ interface StepView {
                 <span class="badge accent">{{ names()[m] ?? m }}</span>
               }
               @if (d.misconceptionIds.length === 0) {
-                <span class="badge">{{ d.residualLabel === 'unclassified' ? 'Other (not in catalog)' : d.residualLabel }}</span>
+                <span class="badge">{{
+                  d.residualLabel === 'unclassified' ? 'Other (not in catalog)' : d.residualLabel
+                }}</span>
               }
             </div>
           }
@@ -66,7 +76,9 @@ interface StepView {
       }
     </ol>
     @if (hasUnchecked()) {
-      <p class="muted foot">Later steps are not blamed for an earlier mistake; only the first divergence is reported.</p>
+      <p class="muted foot">
+        Later steps are not blamed for an earlier mistake; only the first divergence is reported.
+      </p>
     }
   `,
   styles: `
@@ -172,12 +184,19 @@ export class DerivationView {
       if (d?.status === DiagnosisStatus.VALID) state = i <= exprs.length ? 'valid' : 'pending';
       else if (d?.status === DiagnosisStatus.DIVERGED) {
         const at = d.divergence?.stepIndex ?? 0;
-        state = i < at ? 'valid' : i === at ? 'diverged' : i <= exprs.length ? 'unchecked' : 'pending';
+        state =
+          i < at ? 'valid' : i === at ? 'diverged' : i <= exprs.length ? 'unchecked' : 'pending';
       } else if (d?.status === DiagnosisStatus.PARSE_ERROR) {
         const at = d.parseErrorStep;
-        state = i === at ? 'parse' : i < at ? 'pending' : i <= exprs.length ? 'unchecked' : 'pending';
+        state =
+          i === at ? 'parse' : i < at ? 'pending' : i <= exprs.length ? 'unchecked' : 'pending';
       }
-      out.push({ index: i, prompt: p?.steps.find((s) => s.index === i)?.prompt ?? '', expr: exprs[i - 1] ?? '', state });
+      out.push({
+        index: i,
+        prompt: p?.steps.find((s) => s.index === i)?.prompt ?? '',
+        expr: exprs[i - 1] ?? '',
+        state,
+      });
     }
     return out;
   });

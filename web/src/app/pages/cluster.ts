@@ -29,7 +29,8 @@ interface Example {
           <h1>{{ cluster()?.name ?? key() }}</h1>
           @if (cluster(); as c) {
             <p class="sub">
-              {{ c.count }} {{ c.count === 1 ? 'submission' : 'submissions' }} first went wrong here · {{ placesText() }}
+              {{ c.count }} {{ c.count === 1 ? 'submission' : 'submissions' }} first went wrong here
+              · {{ placesText() }}
             </p>
           }
         </div>
@@ -58,13 +59,17 @@ interface Example {
               <h2>Not in the catalog</h2>
               @if (key().startsWith('unclassified')) {
                 <p>
-                  These errors match no catalog misconception and no simple residual pattern. They are shown as
-                  <strong>Other</strong>; the tool does not guess their cause. Read the examples to decide.
+                  These errors match no catalog misconception and no simple residual pattern. They
+                  are shown as
+                  <strong>Other</strong>; the tool does not guess their cause. Read the examples to
+                  decide.
                 </p>
               } @else {
                 <p>
-                  The step equals the correct answer transformed in a simple way (<span class="mono">{{ key() }}</span>),
-                  but no catalog misconception explains it.
+                  The step equals the correct answer transformed in a simple way (<span
+                    class="mono"
+                    >{{ key() }}</span
+                  >), but no catalog misconception explains it.
                 </p>
               }
             </section>
@@ -74,8 +79,8 @@ interface Example {
             <section class="card">
               <h2>Practice problems</h2>
               <p class="muted legend">
-                Each answer key was checked by two independent routes. Each problem separates this misconception from
-                the correct answer.
+                Each answer key was checked by two independent routes. Each problem separates this
+                misconception from the correct answer.
               </p>
               <div class="stack">
                 @for (p of problems(); track p.problem?.id) {
@@ -241,7 +246,9 @@ export class ClusterPage implements OnInit {
         c.exampleSubmissionIds.map((sid) => this.api.client.getSubmission({ submissionId: sid })),
       );
       this.examples.set(
-        subs.filter((s) => s.submission).map((s) => ({ submission: s.submission!, diagnosis: s.diagnosis })),
+        subs
+          .filter((s) => s.submission)
+          .map((s) => ({ submission: s.submission!, diagnosis: s.diagnosis })),
       );
     } catch (e) {
       this.error.set(errorMessage(e));
@@ -258,7 +265,10 @@ export class ClusterPage implements OnInit {
     this.generating.set(true);
     this.error.set('');
     try {
-      const res = await this.api.client.generateRemediation({ misconceptionId: this.key(), count: 3 });
+      const res = await this.api.client.generateRemediation({
+        misconceptionId: this.key(),
+        count: 3,
+      });
       this.problems.set(res.problems.filter((p) => p.verified));
     } catch (e) {
       this.error.set(errorMessage(e));

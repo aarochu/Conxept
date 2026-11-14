@@ -27,7 +27,8 @@ interface HeatRow {
           <div class="crumbs"><a routerLink="/">Classes</a> /</div>
           <h1>{{ className() || 'Class' }}</h1>
           <p class="sub">
-            Where each submission first goes wrong, checked by mathematics against the student's own previous step.
+            Where each submission first goes wrong, checked by mathematics against the student's own
+            previous step.
           </p>
         </div>
         <div class="head-actions">
@@ -46,42 +47,53 @@ interface HeatRow {
         <section class="card">
           <h2>First wrong step, by problem</h2>
           <p class="muted legend">
-            Each cell is one step. The number is how many students first went wrong there, out of those who reached it.
+            Each cell is one step. The number is how many students first went wrong there, out of
+            those who reached it.
           </p>
           @if (rows().length === 0) {
-            <div class="empty">{{ loading() ? 'Loading…' : 'No diagnoses yet. Process the class first.' }}</div>
+            <div class="empty">
+              {{ loading() ? 'Loading…' : 'No diagnoses yet. Process the class first.' }}
+            </div>
           } @else {
             <div class="scroll">
-            <table class="heat">
-              <thead>
-                <tr>
-                  <th>Problem</th>
-                  @for (s of stepCols(); track s) {
-                    <th class="center">Step {{ s }}</th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (r of rows(); track r.problem.id) {
+              <table class="heat">
+                <thead>
                   <tr>
-                    <td>
-                      <div class="pname">{{ familyName(r.problem.family) }}</div>
-                      <div class="mono muted">{{ r.problem.id }}</div>
-                    </td>
-                    @for (c of r.cells; track $index) {
-                      @if (c) {
-                        <td class="cell" [style.background]="shade(c)" [class.hot]="ratio(c) > 0.45"
-                            [attr.title]="c.failed + ' of ' + c.attempted + ' first went wrong here'">
-                          <span class="n">{{ c.failed }}</span><span class="of">/ {{ c.attempted }}</span>
-                        </td>
-                      } @else {
-                        <td class="cell none"></td>
-                      }
+                    <th>Problem</th>
+                    @for (s of stepCols(); track s) {
+                      <th class="center">Step {{ s }}</th>
                     }
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (r of rows(); track r.problem.id) {
+                    <tr>
+                      <td>
+                        <div class="pname">{{ familyName(r.problem.family) }}</div>
+                        <div class="mono muted">{{ r.problem.id }}</div>
+                      </td>
+                      @for (c of r.cells; track $index) {
+                        @if (c) {
+                          <td
+                            class="cell"
+                            [style.background]="shade(c)"
+                            [class.hot]="ratio(c) > 0.45"
+                            [attr.title]="
+                              c.failed + ' of ' + c.attempted + ' first went wrong here'
+                            "
+                          >
+                            <span class="n">{{ c.failed }}</span><span class="of"
+                              >/ {{ c.attempted }}</span
+                            >
+                          </td>
+                        } @else {
+                          <td class="cell none"></td>
+                        }
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           }
         </section>
@@ -100,7 +112,9 @@ interface HeatRow {
                       <span class="cname">{{ c.name }}</span>
                       <span class="count">{{ c.count }}</span>
                     </div>
-                    <div class="bar"><div [style.width.%]="(100 * c.count) / maxCount()"></div></div>
+                    <div class="bar">
+                      <div [style.width.%]="(100 * c.count) / maxCount()"></div>
+                    </div>
                     <div class="cmeta">
                       {{ familyName(c.family) }}, step {{ c.stepIndex }}
                       @if (c.inCatalog) {
@@ -123,12 +137,15 @@ interface HeatRow {
         <section class="card analyze">
           <h2>Instructor brief</h2>
           <p class="muted legend">
-            The agent writes the summary. Every number in it must come from a tool result, or the brief is rejected.
+            The agent writes the summary. Every number in it must come from a tool result, or the
+            brief is rejected.
           </p>
           <ol class="log">
             @for (l of log(); track $index) {
               <li [class]="l.kind">
-                <span class="tag">{{ l.kind === 'call' ? 'tool' : l.kind === 'result' ? 'result' : l.kind }}</span>
+                <span class="tag">{{
+                  l.kind === 'call' ? 'tool' : l.kind === 'result' ? 'result' : l.kind
+                }}</span>
                 <span class="mono">{{ l.title }}</span>
                 <span class="muted detail">{{ l.detail }}</span>
               </li>
