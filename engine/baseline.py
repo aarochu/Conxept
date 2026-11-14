@@ -203,6 +203,8 @@ def score(sample, steps: list[int]) -> Score:
 
 
 def disagreements(a: list, b: list) -> int:
+    if len(a) != len(b):
+        raise ValueError("runs must contain the same number of answers")
     return sum(x != y for x, y in zip(a, b))
 
 
