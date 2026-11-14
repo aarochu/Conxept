@@ -55,16 +55,16 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 ### H0 scaffold
 - [x] Repo, folders, docs, protos, SQL, Makefile, compose
 - [ ] Drop starter package into `reference/`
-- [ ] `npx buf lint` clean
-- [ ] Reference acceptance gates green
+- [x] `npx buf lint` clean
+- [ ] Reference acceptance gates green (starter package missing; engine tests cover the same claims)
 - [ ] Confirm course Fourier convention: X(jw) = ∫ x(t) e^(−jwt) dt
 
 ### Engine (A)
-- [ ] `parse_step.py`, `diagnose.py`, `problems.py` ported
-- [ ] `server.py` with ProcessPoolExecutor (4 workers, 5 s timeout)
-- [ ] `remediation.py` (two-route verification, never return unverified)
-- [ ] `synthetic.py` (single seeded RNG, `propagate`)
-- [ ] `agent.py` + number check
+- [x] `parse_step.py`, `diagnose.py`, `problems.py` (written from spec; 32/32 mutations)
+- [x] `server.py` with ProcessPoolExecutor (4 workers, 5 s timeout)
+- [x] `remediation.py` (two-route verification, never return unverified)
+- [x] `synthetic.py` (single seeded RNG, follow-through)
+- [x] `agent.py` + number check (scripted-model test; live model not yet run)
 - [ ] Optional: Wolfram probe
 
 ### Gateway (B)

@@ -1,0 +1,70 @@
+"""Agent wiring with a scripted stand-in model (no API key): tool calls run, the number check guards the brief."""
+
+import json
+
+import pytest
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+
+from agent import analyze_events, unverified_numbers
+
+
+class ScriptedModel(BaseChatModel):
+    script: list
+
+    @property
+    def _llm_type(self):
+        return "scripted"
+
+    def bind_tools(self, tools, **kwargs):
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        n_ai = sum(1 for m in messages if m.type == "ai")
+        return ChatResult(generations=[ChatGeneration(message=self.script[min(n_ai, len(self.script) - 1)])])
+
+
+class FakeData:
+    def heatmap(self, class_id):
+        return [{"problem": "f1-p1-q2-n0", "step": 1, "failed": 7, "attempted": 60}]
+
+    def clusters(self, class_id):
+        return [{"key": "forgot_to_flip_h", "name": "Convolution without flipping h", "count": 12,
+                 "step": 1, "family": "Causal convolution", "in_catalog": True}]
+
+    def examples(self, class_id, key, limit=3):
+        return []
+
+
+def _script(final_text):
+    return [
+        AIMessage(content="", tool_calls=[{"name": "get_heatmap", "args": {"class_id": "c1"}, "id": "a"}]),
+        AIMessage(content="", tool_calls=[{"name": "get_clusters", "args": {"class_id": "c1"}, "id": "b"}]),
+        AIMessage(content=final_text),
+    ]
+
+
+async def _run(final_text):
+    events = []
+    async for e in analyze_events("c1", model=ScriptedModel(script=_script(final_text)), data=FakeData()):
+        events.append(e)
+    return events
+
+
+async def test_tool_calls_then_brief():
+    events = await _run("Overview: 12 students did not flip h; 7 of 60 failed step 1 of f1-p1-q2-n0.")
+    kinds = [e.WhichOneof("event") for e in events]
+    assert kinds.count("tool_call") == 2 and kinds.count("tool_result") == 2
+    assert kinds[-1] == "brief" and events[-1].brief.brief_id
+
+
+async def test_invented_number_rejected():
+    events = await _run("Overview: 45 students did not flip h.")
+    assert events[-1].WhichOneof("event") == "error"
+    assert events[-1].error == "brief contained an unverified number"
+
+
+def test_number_check_allows_ordinals():
+    assert unverified_numbers("1. first 2. second 3. third", []) == set()
+    assert unverified_numbers("4 items", ["[1, 2]"]) == {4}

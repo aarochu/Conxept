@@ -1,4 +1,4 @@
-.PHONY: gen db engine gateway web test demo lint
+.PHONY: gen db engine gateway web test demo lint eval
 
 PY ?= $(CURDIR)/.venv/bin/python
 
@@ -23,7 +23,10 @@ lint:
 	npx buf lint
 
 test: lint ## engine tests and buf lint
-	cd engine && $(PY) -m pytest tests
+	cd engine && $(PY) -m pytest
 
 demo: ## seed the default synthetic class and process it through the gateway
 	@echo "TODO: implement once gateway exposes SeedSyntheticClass and ProcessClass" && exit 1
+
+eval: ## engine-only evaluation on a seeded synthetic class
+	cd engine && $(PY) evaluate.py 60 7
