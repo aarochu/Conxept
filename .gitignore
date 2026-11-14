@@ -38,3 +38,5 @@ gateway/queries.sql
 
 # Local evaluation outputs
 engine/real_eval_out/
+# Baseline run outputs (spec 8.5)
+engine/baseline_out/

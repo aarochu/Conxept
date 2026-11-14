@@ -1,4 +1,5 @@
 .PHONY: gen db engine gateway web test demo lint eval test-gateway web-build rehearse
+.PHONY: gen db engine gateway web test demo lint eval test-gateway web-build baseline
 
 PY ?= $(CURDIR)/.venv/bin/python
 
@@ -40,3 +41,5 @@ eval: ## engine-only evaluation on a seeded synthetic class
 
 rehearse: ## demo script 3 times from a clean local database (deletes local data; needs engine + gateway running)
 	cd gateway && go run ./cmd/rehearse -reset -runs 3
+baseline: ## model-only baseline, spec 8.5 (calls the Claude API ~200 times; costs money)
+	cd engine && $(PY) baseline.py --out baseline_out
