@@ -89,3 +89,18 @@ def test_end_to_end_with_fake_model(tmp_path, monkeypatch):
 def test_dry_run_makes_no_calls(capsys):
     assert baseline.main(["--dry-run"]) == 0
     assert FIXED_PROMPT in capsys.readouterr().out
+
+
+def test_refusal_on_correct_submission_is_not_a_false_alarm():
+    sample = select_sample()
+    steps = [REFUSED if s.true_step_index == 0 else s.true_step_index for s in sample]
+    s = score(sample, steps)
+    assert s.false_alarms == 0 and s.refused_or_failed == 40
+
+
+def test_summary_counts_fallback_answers():
+    sample = select_sample()[:3]
+    answers = [baseline.ModelAnswer(0, "", served_by=m) for m in ("claude-opus-5-5", "claude-opus-4-8", "")]
+    engine = baseline.run_engine(sample, runs=1)
+    md = baseline.summary_markdown(sample, "claude-opus-5-5", "medium", [answers], engine)
+    assert "| Answered by a fallback model instead of `claude-opus-5-5` (run 1) | 1 |" in md

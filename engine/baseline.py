@@ -192,7 +192,8 @@ def score(sample, steps: list[int]) -> Score:
             s.refused_or_failed += 1
         if sub.true_step_index == 0:
             s.correct_total += 1
-            s.false_alarms += got != 0
+            # A refusal is reported separately; only a real "step N is wrong" counts as a false alarm.
+            s.false_alarms += got > 0
         else:
             s.step_expected += 1
             s.step_correct += got == sub.true_step_index
@@ -241,6 +242,8 @@ def summary_markdown(sample, model, effort, model_runs, engine_runs) -> str:
         f"| False alarms on correct submissions (run 1) | {m[0].false_alarms} of {m[0].correct_total} | "
         f"{e.false_alarms} of {e.correct_total} |",
         f"| Refused or unparseable (run 1) | {m[0].refused_or_failed} | 0 |",
+        f"| Answered by a fallback model instead of `{model}` (run 1) | "
+        f"{sum(1 for a in model_runs[0] if a.served_by and a.served_by != model)} | — |",
     ]
     if len(model_runs) > 1:
         steps = [[a.first_wrong_step for a in run] for run in model_runs]
@@ -272,6 +275,8 @@ def main(argv=None) -> int:
     ap.add_argument("--no-fallbacks", action="store_true", help="disable server-side refusal fallback")
     ap.add_argument("--dry-run", action="store_true", help="print the sample and one prompt; no API calls")
     args = ap.parse_args(argv)
+    if args.runs < 1:
+        ap.error("--runs must be at least 1")
 
     sample = select_sample()
     counts = {k: sum(kind_of(s) == k for s in sample) for k in MIX}
