@@ -68,13 +68,14 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 - [ ] Optional: Wolfram probe
 
 ### Gateway (B)
-- [ ] Go stubs generated, empty handler compiles
-- [ ] First Diagnose call to engine (fallback: grpc-go)
-- [ ] Limits table enforced before engine calls
-- [ ] SeedSyntheticClass, ProcessClass, ListClasses
-- [ ] GetHeatmap, GetClusters, GetSubmission, GetEvaluation
-- [ ] TryDerivation, GenerateRemediation, AnalyzeClass
-- [ ] SPA file server with index.html fallback
+- [x] Go stubs generated, empty handler compiles
+- [x] First Diagnose call to engine (connect-go WithGRPC over h2c worked; no fallback)
+- [x] Limits table enforced before engine calls
+- [x] SeedSyntheticClass, ProcessClass, ListClasses
+- [x] GetHeatmap, GetClusters, GetSubmission, GetEvaluation
+- [x] TryDerivation, GenerateRemediation, AnalyzeClass (AnalyzeClass not run with a live model)
+- [x] SPA file server with index.html fallback
+- [x] 60-student class seeded + processed end to end: 5.4 s cold (target 60 s)
 
 ### Web (C)
 - [ ] Shell, routing, mock gateway

@@ -265,6 +265,9 @@ async def serve(port: int = 50051) -> grpc.aio.Server:
     global _pool
     if _pool is None:
         _pool = ProcessPoolExecutor(max_workers=WORKERS, initializer=_warm)
+        # Start every worker now, before gRPC threads exist and before the first request.
+        for f in [_pool.submit(_warm) for _ in range(WORKERS)]:
+            f.result()
     server = grpc.aio.server()
     rpc.add_EngineServiceServicer_to_server(EngineService(), server)
     rpc.add_InstructorAgentServiceServicer_to_server(InstructorAgentService(), server)
