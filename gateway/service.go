@@ -65,7 +65,10 @@ func checkSteps(steps []*v1.Step) error {
 	if len(steps) > maxSteps {
 		return invalid("at most %d steps", maxSteps)
 	}
-	for _, s := range steps {
+	for i, s := range steps {
+		if s == nil || s.Index != int32(i+1) {
+			return invalid("steps must have consecutive indices starting at 1")
+		}
 		if len(s.Expr) > maxExprLen {
 			return invalid("step %d is longer than %d characters", s.Index, maxExprLen)
 		}
