@@ -62,6 +62,9 @@ func dbErr(err error, what string) error {
 }
 
 func checkSteps(steps []*v1.Step) error {
+	if len(steps) == 0 {
+		return invalid("at least one step is required")
+	}
 	if len(steps) > maxSteps {
 		return invalid("at most %d steps", maxSteps)
 	}
