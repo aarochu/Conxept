@@ -1,0 +1,4 @@
+id,problem_id,student,step1,step2,step3,step4,step5,step6,true_step,true_label,notes
+EX01,f1-p1-q2-n0,A01,2/(s+2) - 1/(s+1),(2*exp(-2*t) - exp(-t))*u(t),,,,,0,,example: correct
+EX02,f1-p1-q2-n0,A02,2/(s+2) - 1/(s+1),2*exp(-2*t) - exp(-t),,,,,2,forgot_causality_u_of_t,example: dropped u(t)
+EX03,f3-a2,A03,"int(exp(-2*t)*exp(-j*w*t),t,0,inf)",1/(2+j*w) + 1/2,,,,,2,other,"example: error outside the catalog; steps with commas must be quoted"
