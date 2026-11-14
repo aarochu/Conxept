@@ -82,7 +82,12 @@ def split_of(row_id: str) -> str:
 def read_rows(path: Path) -> tuple[list[Row], list[str]]:
     rows, errors, seen = [], [], set()
     with path.open(newline="") as f:
-        for n, rec in enumerate(csv.DictReader(f), start=2):  # line 1 is the header
+        reader = csv.DictReader(f)
+        headers = reader.fieldnames or []
+        required = {"id", "problem_id", "step1", "true_step"}
+        if not required.issubset(headers) or len(headers) != len(set(headers)):
+            return [], ["CSV needs unique headers including id, problem_id, step1, true_step"]
+        for n, rec in enumerate(reader, start=2):  # line 1 is the header
             rid = (rec.get("id") or "").strip()
             if not rid:
                 errors.append(f"line {n}: missing id")
