@@ -247,6 +247,9 @@ def main(argv=None) -> int:
     for e in errors:
         print(f"skipped: {e}", file=sys.stderr)
     chosen = [r for r in rows if args.split == "all" or split_of(r.id) == args.split]
+    if not chosen:
+        print(f"no rows in selected split: {args.split}", file=sys.stderr)
+        return 2
     outcomes = [evaluate_row(r) for r in chosen]
     for o in outcomes:
         if o.input_error:
