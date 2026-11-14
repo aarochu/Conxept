@@ -665,6 +665,12 @@ def diagnose(problem, step_texts: list[str]) -> Result:
             except ParseError as e:
                 res = Result(status=STATUS_PARSE_ERROR, parse_error=str(e), parse_error_step=i)
                 break
+            except Exception as e:
+                # SymPy can reject a syntactically valid expression while building it.
+                res = Result(status=STATUS_PARSE_ERROR,
+                             parse_error=f"could not evaluate this step ({type(e).__name__})",
+                             parse_error_step=i)
+                break
         if res is None:
             try:
                 res = diagnose_exprs(family, ctx, [family.given(ctx)] + exprs)
