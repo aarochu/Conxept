@@ -54,6 +54,7 @@ func spaFileServer(dir string) http.Handler {
 			http.Error(w, "web app not built (expected "+index+")", http.StatusNotFound)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, index)
 	})
 }
