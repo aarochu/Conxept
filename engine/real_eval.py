@@ -254,7 +254,10 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=Path("real_eval_out"))
     args = ap.parse_args(argv)
 
-    rows, errors = read_rows(args.csv)
+    try:
+        rows, errors = read_rows(args.csv)
+    except (OSError, UnicodeError, csv.Error) as exc:
+        ap.error(f"cannot read input CSV: {exc}")
     for e in errors:
         print(f"skipped: {e}", file=sys.stderr)
     chosen = [r for r in rows if args.split == "all" or split_of(r.id) == args.split]
