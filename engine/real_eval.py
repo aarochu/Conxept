@@ -257,6 +257,10 @@ def main(argv=None) -> int:
         elif o.status == STATUS_PARSE_ERROR:
             print(f"parse error {o.row.id} step {o.step}: {o.parse_error}", file=sys.stderr)
 
+    if not any(not o.input_error and o.status in (STATUS_VALID, STATUS_DIVERGED) for o in outcomes):
+        print("no evaluable rows in selected split", file=sys.stderr)
+        return 2
+
     args.out.mkdir(parents=True, exist_ok=True)
     text = report(summarize(outcomes), args.split, str(args.csv))
     (args.out / f"summary_{args.split}.md").write_text(text)
