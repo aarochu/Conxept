@@ -120,6 +120,8 @@ def ask_model(client, prompt: str, model: str, effort: str, use_fallbacks: bool 
     response = client.beta.messages.create(**kwargs)
     if response.stop_reason == "refusal":
         return ModelAnswer(REFUSED, "", served_by=response.model, refused=True)
+    if response.stop_reason != "end_turn":
+        return ModelAnswer(REFUSED, "", served_by=response.model, error=f"incomplete response: {response.stop_reason}")
     text = next((b.text for b in response.content if b.type == "text"), "")
     try:
         data = json.loads(text)
