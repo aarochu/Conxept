@@ -89,8 +89,8 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 ### Wrap-up
 - [ ] Baseline (§8.5) run and recorded
 - [ ] Real classmate derivations collected, half held aside
-- [ ] Devpost text from measured numbers only
-- [ ] Demo rehearsed 3× from clean DB
+- [x] Devpost draft from measured numbers only (`docs/devpost.md`; not submitted)
+- [x] Automated demo rehearsed 3× from clean DB (Analyze skipped; visual walkthrough and recording still pending)
 
 ## Cut list (cut in this order when behind)
 
@@ -105,6 +105,6 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 ## Open items
 
 - Course Fourier convention (§3): if different, edit only the f3 key and four f3 catalog entries.
-- connect-go + h2c to Python is uncompiled; first integration gate.
+- connect-go + h2c to Python integration gate passed; gateway integration tests and three local rehearsals reproduced the synthetic evaluation.
 - Judging criteria, prize eligibility, demo slot: read the Hacker Onsite Handbook.
 - Tiger Cloud Free limits: read before relying on it; Docker Postgres is the fallback.
