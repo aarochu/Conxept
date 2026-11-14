@@ -150,6 +150,8 @@ def evaluate_row(row: Row) -> Outcome:
         return Outcome(row, input_error="empty step before a filled one")
     if not 0 <= row.true_step <= len(row.steps):
         return Outcome(row, input_error=f"true_step {row.true_step} is outside 0..{len(row.steps)}")
+    if row.true_step == 0 and row.true_label:
+        return Outcome(row, input_error="correct derivations must have an empty true_label")
     if row.true_label and row.true_label != "other" and row.true_label not in CATALOG:
         # A typo would otherwise count as a catalog label that never matches.
         return Outcome(row, input_error=f"true_label {row.true_label!r} is not a catalog id or 'other'")
