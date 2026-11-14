@@ -155,6 +155,8 @@ def evaluate_row(row: Row) -> Outcome:
     if row.true_label and row.true_label != "other" and row.true_label not in CATALOG:
         # A typo would otherwise count as a catalog label that never matches.
         return Outcome(row, input_error=f"true_label {row.true_label!r} is not a catalog id or 'other'")
+    if row.true_label in CATALOG and (problem.family.key, row.true_step) not in CATALOG[row.true_label].places:
+        return Outcome(row, input_error="true_label does not apply to this family and step")
     r = _diagnose_with_timeout(problem, row.steps)
     if r is None:
         return Outcome(row, status=STATUS_PARSE_ERROR, parse_error=f"timed out after {TIMEOUT_S:.0f} s")
