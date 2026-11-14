@@ -35,3 +35,6 @@ docs/rules.md
 
 # Copied from sql/queries.sql by make gen
 gateway/queries.sql
+
+# Local evaluation outputs
+engine/real_eval_out/
