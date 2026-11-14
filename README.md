@@ -46,29 +46,56 @@ Generated code (`gateway/gen/`, `web/src/gen/`, `engine/gen/`) is never committe
 
 ## Setup
 
-Requirements: Python 3.13, Go 1.24+, Node 22, Docker.
+Requirements: Python 3.13, Go 1.27, Node 22, and Docker or Homebrew `postgresql@16`.
 
 ```bash
 cp .env.example .env
-pip install sympy mpmath grpcio grpcio-tools protobuf deepagents "psycopg[binary]"
-npm i -D @bufbuild/buf @bufbuild/protoc-gen-es @bufbuild/protobuf
-npm i @connectrpc/connect @connectrpc/connect-web
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+python3.13 -m venv .venv && .venv/bin/pip install -r engine/requirements.txt
+npm ci && (cd web && npm ci)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.1
 make gen
 ```
 
 ## Running
 
+Everything in containers:
+
+```bash
+docker compose up --build    # Postgres, engine, gateway; open http://localhost:8080
+```
+
+Or each piece locally:
+
 | Command | Does |
 | --- | --- |
-| `make gen` | buf generate + Python stubs |
-| `make db` | start postgres:16 and apply schema |
+| `make gen` | buf generate (Go, TypeScript) + Python stubs |
+| `make db` | Postgres 16 (Docker, else Homebrew) + schema + read-only engine role |
 | `make engine` | Python server on 50051 |
-| `make gateway` | Go server on 8080 |
-| `make web` | `ng serve` with proxy to 8080 |
-| `make test` | engine tests + `buf lint` |
-| `make demo` | seed the default synthetic class and process it |
+| `make web-build` | Production build of the Angular app |
+| `make gateway` | Go server on 8080, serving the built app |
+| `make web` | `ng serve` on 4200 with proxy to 8080 |
+| `make test` | `buf lint` + engine tests |
+| `make test-gateway` | Gateway end-to-end tests (needs engine and Postgres running) |
+| `make eval` | Engine-only evaluation on a seeded synthetic class |
+| `make demo` | Seed the default synthetic class and process it through the gateway |
+
+## CI/CD
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every pull request and on pushes to `main`:
+
+| Job | Checks |
+| --- | --- |
+| Protos and codegen | `buf lint`; generates Go, Python and TypeScript once and shares them with the other jobs |
+| Engine | 128 pytest tests; the seed-7 evaluation is posted to the run summary |
+| Gateway | gofmt, `go vet`, and the end-to-end tests against Postgres 16 and a running engine |
+| Web | Prettier check and the production build |
+| Images | Builds both Docker images, starts the stack with `docker compose`, and runs `make demo` against it |
+| Publish (`main` only) | Pushes `ghcr.io/<owner>/conxept-engine` and `conxept-gateway`, tagged with the commit SHA and `latest` |
+
+Deployment is image-based: pull the two images and run them next to any Postgres 16 (Tiger Cloud for the demo).
+The gateway needs `DATABASE_URL` and `ENGINE_ADDR`; the engine needs a read-only `DATABASE_URL` and, for
+Analyze, `ANTHROPIC_API_KEY`.
 
 ## Docs
 

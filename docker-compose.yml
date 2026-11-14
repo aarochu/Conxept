@@ -1,3 +1,5 @@
+# Full stack: docker compose up --build, then open http://localhost:8080
+# Postgres only (for local dev with make engine / make gateway): make db
 services:
   postgres:
     image: postgres:16
@@ -9,10 +11,46 @@ services:
       - "5432:5432"
     volumes:
       - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./scripts/roles.sql:/docker-entrypoint-initdb.d/02-roles.sql:ro
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d misconception"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
-  # engine:   Python gRPC server on 50051 (lane A adds Dockerfile)
-  # gateway:  Go connect-go server on 8080 (lane B adds Dockerfile)
+  engine:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    environment:
+      # Read-only role (spec section 5): the engine never writes.
+      DATABASE_URL: postgres://engine_ro:engine_ro@postgres:5432/misconception
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENT_MODEL: ${AGENT_MODEL:-anthropic:claude-sonnet-5-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50051), 1)"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/misconception
+      ENGINE_ADDR: http://engine:50051
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      engine:
+        condition: service_healthy
 
 volumes:
   pgdata:
