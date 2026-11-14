@@ -40,6 +40,8 @@ type Gateway struct {
 	catalog   map[string]*v1.Misconception
 }
 
+func instructionTooLong(s string) bool { return len([]rune(s)) > maxInstructionLen }
+
 func invalid(format string, args ...any) error {
 	return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(format, args...))
 }
@@ -324,7 +326,7 @@ func (g *Gateway) GenerateRemediation(ctx context.Context, req *connect.Request[
 }
 
 func (g *Gateway) AnalyzeClass(ctx context.Context, req *connect.Request[v1.AnalyzeClassRequest], stream *connect.ServerStream[v1.AnalyzeClassResponse]) error {
-	if len(req.Msg.Instruction) > maxInstructionLen {
+	if instructionTooLong(req.Msg.Instruction) {
 		return invalid("instruction is longer than %d characters", maxInstructionLen)
 	}
 	if err := g.store.ClassExists(ctx, req.Msg.ClassId); err != nil {
