@@ -139,7 +139,8 @@ def _diagnose_with_timeout(problem, steps):
         signal.signal(signal.SIGALRM, previous)
 
 
-def evaluate_row(row: Row) -> Outcome:
+def validate_row(row: Row) -> Outcome | None:
+    """Check import metadata without calculating a diagnosis or exposing scores."""
     try:
         problem = problem_from_id(row.problem_id)
     except KeyError:
@@ -159,6 +160,14 @@ def evaluate_row(row: Row) -> Outcome:
         return Outcome(row, input_error=f"true_label {row.true_label!r} is not a catalog id or 'other'")
     if row.true_label in CATALOG and (problem.family.key, row.true_step) not in CATALOG[row.true_label].places:
         return Outcome(row, input_error="true_label does not apply to this family and step")
+    return None
+
+
+def evaluate_row(row: Row) -> Outcome:
+    invalid = validate_row(row)
+    if invalid is not None:
+        return invalid
+    problem = problem_from_id(row.problem_id)
     r = _diagnose_with_timeout(problem, row.steps)
     if r is None:
         return Outcome(row, status=STATUS_PARSE_ERROR, parse_error=f"timed out after {TIMEOUT_S:.0f} s")
@@ -252,6 +261,7 @@ def main(argv=None) -> int:
     ap.add_argument("csv", type=Path)
     ap.add_argument("--split", choices=SPLITS, default="test")
     ap.add_argument("--out", type=Path, default=Path("real_eval_out"))
+    ap.add_argument("--check", action="store_true", help="validate CSV and hand-label metadata without diagnosing or writing scores")
     args = ap.parse_args(argv)
 
     try:
@@ -264,6 +274,12 @@ def main(argv=None) -> int:
     if not chosen:
         print(f"no rows in selected split: {args.split}", file=sys.stderr)
         return 2
+    if args.check:
+        invalid = [issue for row in chosen if (issue := validate_row(row)) is not None]
+        for issue in invalid:
+            print(f"invalid {issue.row.id}: {issue.input_error}", file=sys.stderr)
+        print(f"Checked {len(chosen)} rows in split {args.split}; no diagnoses calculated or score files written.")
+        return 2 if errors or invalid else 0
     outcomes = [evaluate_row(r) for r in chosen]
     for o in outcomes:
         if o.input_error:
