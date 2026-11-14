@@ -1,4 +1,5 @@
 .PHONY: gen db engine gateway web test demo lint eval test-gateway web-build real-eval
+.PHONY: gen db engine gateway web test demo lint eval test-gateway web-build baseline
 
 PY ?= $(CURDIR)/.venv/bin/python
 
@@ -41,3 +42,5 @@ eval: ## engine-only evaluation on a seeded synthetic class
 SPLIT ?= test
 real-eval: ## engine on hand-labelled real derivations, spec 8.4 (data/real/derivations.csv)
 	cd engine && $(PY) real_eval.py ../data/real/derivations.csv --split $(SPLIT)
+baseline: ## model-only baseline, spec 8.5 (calls the Claude API ~200 times; costs money)
+	cd engine && $(PY) baseline.py --out baseline_out
