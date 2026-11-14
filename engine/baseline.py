@@ -275,6 +275,8 @@ def main(argv=None) -> int:
     ap.add_argument("--no-fallbacks", action="store_true", help="disable server-side refusal fallback")
     ap.add_argument("--dry-run", action="store_true", help="print the sample and one prompt; no API calls")
     args = ap.parse_args(argv)
+    if not args.model.strip():
+        ap.error("--model must not be blank")
     if args.runs < 1:
         ap.error("--runs must be at least 1")
     if args.workers < 1:
