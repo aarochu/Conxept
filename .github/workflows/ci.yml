@@ -200,6 +200,27 @@ jobs:
           for _ in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && break; sleep 1; done
           curl -sf http://localhost:8080/class/anything | grep -q "<app-root"
           cd gateway && go run ./cmd/demo -gateway http://localhost:8080
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install browser regression dependencies
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Browser regression tests
+        working-directory: web
+        run: npm run test:e2e
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure
+          path: web/test-results
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Compose logs
         if: failure()
         run: docker compose logs

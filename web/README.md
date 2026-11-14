@@ -30,3 +30,20 @@ make web         # dev server on :4200; proxy.conf.json sends /misconception.v1.
 - Unclassified clusters are shown as **Other** and never given a cause.
 - Mobile layout is a non-goal (spec §1); at phone width the page still has no horizontal scroll, and the heatmap
   scrolls inside its card.
+# Browser regressions
+
+Start a disposable local gateway, engine, and database and build the production
+web app. Then run from `web/`:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The default gateway is `http://localhost:8080`; override it with
+`PLAYWRIGHT_BASE_URL` for another local test port. The configuration rejects
+remote hosts. CI runs these tests against its disposable Compose stack and
+retains screenshots, traces, and videos on failure. The Try regression controls
+browser time and the order of replies to reproduce edits during the debounce
+window; it requires no model key or real submissions.

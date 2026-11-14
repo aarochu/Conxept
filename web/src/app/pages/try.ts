@@ -131,6 +131,7 @@ export class TryPage {
         this.checking.set(false);
         return;
       }
+      this.checking.set(true);
       const timer = setTimeout(() => this.check(pid, leading), DEBOUNCE_MS);
       onCleanup(() => clearTimeout(timer));
     });
@@ -154,10 +155,17 @@ export class TryPage {
     this.steps.set(p ? p.steps.map(() => '') : []);
     this.seq++; // a response for the previous problem must not land on this one
     this.diagnosis.set(undefined);
+    this.filled.set([]);
+    this.error.set('');
     this.checking.set(false);
   }
 
   setStep(i: number, value: string) {
+    this.seq++; // invalidate the previous request before the next debounce begins
+    this.diagnosis.set(undefined);
+    this.filled.set([]);
+    this.error.set('');
+    this.checking.set(true);
     this.steps.update((all) => all.map((s, j) => (j === i ? value : s)));
   }
 

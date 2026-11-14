@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+# Browser-test evidence stays local or in CI artifacts.
+test-results/
+playwright-report/
