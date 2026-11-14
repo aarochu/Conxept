@@ -40,6 +40,10 @@ test-gateway: ## gateway tests against a running engine and Postgres
 eval: ## engine-only evaluation on a seeded synthetic class
 	cd engine && $(PY) evaluate.py 60 7
 
+.PHONY: acceptance
+acceptance: ## fail on unmet spec 8.2 synthetic accuracy and latency targets
+	cd engine && $(PY) acceptance.py --out acceptance_out/report.json
+
 rehearse: ## demo script 3 times from a clean local database (deletes local data; needs engine + gateway running)
 	cd gateway && go run ./cmd/rehearse -reset -runs 3
 SPLIT ?= test

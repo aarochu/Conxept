@@ -31,11 +31,11 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 | Gate | Command | Expected |
 | --- | --- | --- |
 | Contracts | `npx buf lint` | no output |
-| Library claims | `PYTHONPATH=reference python3 reference/tests/verify_claims.py` | 10 passed, 0 failed |
-| Parser | `PYTHONPATH=reference python3 reference/tests/test_parse.py` | 12/12 valid, 17/17 hostile rejected |
-| Engine eval | `PYTHONPATH=reference python3 reference/engine_spike.py 12` | 0 false alarms; §8.3 results |
-| Python gRPC | `PYTHONPATH=reference:. python3 reference/tests/grpc_roundtrip.py` | VALID, DIVERGED, PARSE_ERROR, 6-message stream |
-| Agent wiring | `python3 reference/tests/agent_fake.py` | 2 tool calls, then final text |
+| Library claims | `.venv/bin/python -m pytest engine/tests/test_diagnose.py engine/tests/test_remediation.py` | diagnosis and checked-practice tests pass (reference package unavailable) |
+| Parser | `.venv/bin/python -m pytest engine/tests/test_parse.py` | valid DSL accepted; hostile DSL rejected |
+| Engine eval | `make acceptance` | zero false alarms and held-out names; accuracy and p95 targets pass; JSON report saved |
+| Python gRPC | `.venv/bin/python -m pytest engine/tests/test_grpc.py` | unary and streaming round trips pass |
+| Agent wiring | `.venv/bin/python -m pytest engine/tests/test_agent.py` | scripted tool calls, then checked brief |
 | Go→Python | first Diagnose through the gateway | same Diagnosis as Python test |
 
 ## Evaluation targets (§8.2)
