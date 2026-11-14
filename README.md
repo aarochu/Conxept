@@ -101,6 +101,7 @@ Analyze, `ANTHROPIC_API_KEY`.
 
 - [docs/spec.md](docs/spec.md): full build spec (source of truth)
 - [docs/plan.md](docs/plan.md): build plan, lanes, gates, checklist
+- [docs/deployment.md](docs/deployment.md): Tiger Cloud setup, pinned images, smoke check, rollback
 
 ## Acknowledgements
 
