@@ -78,13 +78,13 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 - [x] 60-student class seeded + processed end to end: 5.4 s cold (target 60 s)
 
 ### Web (C)
-- [ ] Shell, routing, mock gateway
-- [ ] Class list (Seed, Process + progress bar)
-- [ ] Dashboard heatmap + clusters + Analyze log
-- [ ] Cluster page + Generate practice
-- [ ] Submission view
-- [ ] Evaluation page
-- [ ] Try page
+- [x] Shell, routing (built against the real gateway; no mock needed)
+- [x] Class list (Seed, Process + progress bar)
+- [x] Dashboard heatmap + clusters + Analyze log (live model not run)
+- [x] Cluster page + Generate practice
+- [x] Submission view
+- [x] Evaluation page
+- [x] Try page
 
 ### Wrap-up
 - [ ] Baseline (§8.5) run and recorded

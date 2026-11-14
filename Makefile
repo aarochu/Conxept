@@ -1,4 +1,4 @@
-.PHONY: gen db engine gateway web test demo lint eval test-gateway
+.PHONY: gen db engine gateway web test demo lint eval test-gateway web-build
 
 PY ?= $(CURDIR)/.venv/bin/python
 
@@ -14,11 +14,14 @@ db: ## start postgres:16 and apply sql/schema.sql (docker, else local postgresql
 engine: ## Python gRPC server on 50051
 	cd engine && $(PY) server.py
 
-gateway: ## Go server on 8080
-	cd gateway && go run .
+gateway: ## Go server on 8080, serving the built web app (make web-build)
+	cd gateway && WEB_DIR=$${WEB_DIR:-../web/dist/web/browser} go run .
 
-web: ## ng serve with proxy to 8080
-	cd web && npx ng serve --proxy-config proxy.conf.json
+web: ## ng serve on 4200 with proxy to 8080
+	cd web && npx ng serve
+
+web-build: ## production build into web/dist/web/browser (served by the gateway)
+	cd web && npx ng build
 
 lint:
 	npx buf lint
