@@ -41,6 +41,10 @@ make test-gateway   # Go tests against the running engine and Postgres
 - **ProcessClass** clears the class's diagnoses, streams the engine's `DiagnoseBatch`, inserts each result as it arrives, and sets `processed_at` only when every submission is done.
 - **Briefs**: `AnalyzeClass` stores each `BriefEvent` in `briefs` (the engine never writes to the database).
 
+The rehearsal also enforces the plan's 60-second seed-and-process target for
+480 submissions. The timer starts immediately before seeding and ends when the
+processing stream completes; it excludes navigation, practice generation, and
+Analyze. A slower run fails even if its evaluation counts are repeatable.
 ## Live Analyze acceptance gate
 
 The normal rehearsal may skip Analyze when no model key is configured. To check

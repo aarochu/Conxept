@@ -33,11 +33,12 @@ type step struct {
 }
 
 type state struct {
-	c        misconceptionv1connect.GatewayServiceClient
-	base     string
-	classID  string
-	clusters []*v1.Cluster
-	eval     string
+	c            misconceptionv1connect.GatewayServiceClient
+	base         string
+	classID      string
+	clusters     []*v1.Cluster
+	eval         string
+	classStarted time.Time
 }
 
 func main() {
@@ -107,6 +108,7 @@ func demoSteps(requireAnalyze bool) []step {
 			return fmt.Sprintf("%d classes", len(res.Msg.Classes)), nil
 		}, false},
 		{"seed 60 students", func(ctx context.Context, s *state) (string, error) {
+			s.classStarted = time.Now()
 			res, err := s.c.SeedSyntheticClass(ctx, connect.NewRequest(&v1.SeedSyntheticClassRequest{NumStudents: 60, Seed: 7}))
 			if err != nil {
 				return "", err
@@ -132,7 +134,10 @@ func demoSteps(requireAnalyze bool) []step {
 			if last == nil || last.Done != last.Total || last.Total != 480 {
 				return "", fmt.Errorf("progress ended at %+v", last)
 			}
-			return "480 / 480", nil
+			if err := checkClassDuration(time.Since(s.classStarted)); err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("480 / 480; seed + process %s", time.Since(s.classStarted).Round(time.Millisecond)), nil
 		}, false},
 		{"heatmap", func(ctx context.Context, s *state) (string, error) {
 			res, err := s.c.GetHeatmap(ctx, connect.NewRequest(&v1.GetHeatmapRequest{ClassId: s.classID}))
@@ -262,6 +267,13 @@ func demoSteps(requireAnalyze bool) []step {
 			return "200", nil
 		}, false},
 	}
+}
+
+func checkClassDuration(elapsed time.Duration) error {
+	if elapsed > time.Minute {
+		return fmt.Errorf("seed + process took %s; plan target is at most 60s", elapsed.Round(time.Millisecond))
+	}
+	return nil
 }
 
 func checkEvaluation(e *v1.GetEvaluationResponse) error {
