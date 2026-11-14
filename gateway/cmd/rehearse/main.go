@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -48,6 +47,9 @@ func main() {
 	reset := flag.Bool("reset", false, "delete all data before each run (required for a clean-database rehearsal)")
 	allowRemote := flag.Bool("allow-remote", false, "allow -reset on a database host other than localhost")
 	flag.Parse()
+	if *runs < 1 {
+		fail(errors.New("-runs must be at least 1"))
+	}
 
 	if *reset {
 		if err := checkLocal(*dbURL, *allowRemote); err != nil {
@@ -267,15 +269,23 @@ func firstCatalog(clusters []*v1.Cluster) *v1.Cluster {
 }
 
 func checkLocal(dbURL string, allowRemote bool) error {
-	u, err := url.Parse(dbURL)
+	cfg, err := pgx.ParseConfig(dbURL)
 	if err != nil {
 		return fmt.Errorf("bad database URL: %w", err)
 	}
-	host := u.Hostname()
-	if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "" || allowRemote {
+	if allowRemote {
 		return nil
 	}
-	return fmt.Errorf("refusing to delete data on %q; pass -allow-remote if that is really what you want", host)
+	hosts := []string{cfg.Host}
+	for _, fallback := range cfg.Fallbacks {
+		hosts = append(hosts, fallback.Host)
+	}
+	for _, host := range hosts {
+		if host != "localhost" && host != "127.0.0.1" && host != "::1" && !strings.HasPrefix(host, "/") {
+			return fmt.Errorf("refusing to delete data on %q; pass -allow-remote if that is really what you want", host)
+		}
+	}
+	return nil
 }
 
 func resetDB(ctx context.Context, dbURL string) error {
