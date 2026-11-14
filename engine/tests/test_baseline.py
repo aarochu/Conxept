@@ -1,10 +1,29 @@
 """Baseline harness (spec section 8.5) with a fake client: no API calls, no key needed."""
 
 import json
+import pytest
 from types import SimpleNamespace
 
 import baseline
 from baseline import FIXED_PROMPT, REFUSED, ask_model, kind_of, score, select_sample
+
+
+def test_engine_failure_is_reported_not_counted_as_valid(monkeypatch):
+    from diagnose import Result, STATUS_PARSE_ERROR
+
+    sample = select_sample()[:1]
+    monkeypatch.setattr(baseline, "diagnose", lambda *args: Result(status=STATUS_PARSE_ERROR))
+    engine = baseline.run_engine(sample, runs=1)
+    assert engine[0][0].first_wrong_step == REFUSED
+    model = [[baseline.ModelAnswer(0, "")]]
+    assert "| Refused or failed (run 1) | 0 | 1 |" in baseline.summary_markdown(
+        sample, "test", "medium", model, engine
+    )
+
+
+def test_zero_workers_rejected_before_requests():
+    with pytest.raises(SystemExit):
+        baseline.main(["--workers", "0"])
 
 
 class FakeMessages:

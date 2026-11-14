@@ -27,7 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from diagnose import CATALOG, STATUS_DIVERGED, diagnose
+from diagnose import CATALOG, STATUS_DIVERGED, STATUS_VALID, diagnose
 from problems import problem_from_id
 from synthetic import SyntheticSubmission, generate_class
 
@@ -162,7 +162,7 @@ def run_engine(sample, runs: int = 2) -> list[list[EngineAnswer]]:
         answers = []
         for s in sample:
             r = diagnose(problem_from_id(s.problem_id), s.steps)
-            step = r.step_index if r.status == STATUS_DIVERGED else 0
+            step = r.step_index if r.status == STATUS_DIVERGED else (0 if r.status == STATUS_VALID else REFUSED)
             labels = r.misconception_ids or ([r.residual_label] if r.residual_label else [])
             answers.append(EngineAnswer(step, labels))
         out.append(answers)
@@ -241,7 +241,7 @@ def summary_markdown(sample, model, effort, model_runs, engine_runs) -> str:
         f"{e.step_correct} of {e.step_expected} |",
         f"| False alarms on correct submissions (run 1) | {m[0].false_alarms} of {m[0].correct_total} | "
         f"{e.false_alarms} of {e.correct_total} |",
-        f"| Refused or unparseable (run 1) | {m[0].refused_or_failed} | 0 |",
+        f"| Refused or failed (run 1) | {m[0].refused_or_failed} | {e.refused_or_failed} |",
         f"| Answered by a fallback model instead of `{model}` (run 1) | "
         f"{sum(1 for a in model_runs[0] if a.served_by and a.served_by != model)} | — |",
     ]
@@ -277,6 +277,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.runs < 1:
         ap.error("--runs must be at least 1")
+    if args.workers < 1:
+        ap.error("--workers must be at least 1")
 
     sample = select_sample()
     counts = {k: sum(kind_of(s) == k for s in sample) for k in MIX}
