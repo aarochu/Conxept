@@ -200,6 +200,19 @@ jobs:
           for _ in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && break; sleep 1; done
           curl -sf http://localhost:8080/class/anything | grep -q "<app-root"
           cd gateway && go run ./cmd/demo -gateway http://localhost:8080
+      - name: Rehearse the demo three times from a clean database
+        run: |
+          set -o pipefail
+          cd gateway
+          go run ./cmd/rehearse -gateway http://localhost:8080 -db "$DATABASE_URL" -reset -runs 3 | tee "$RUNNER_TEMP/rehearsal.log"
+      - name: Retain rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-rehearsal
+          path: ${{ runner.temp }}/rehearsal.log
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Compose logs
         if: failure()
         run: docker compose logs

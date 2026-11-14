@@ -90,7 +90,7 @@ Or each piece locally:
 | Engine | 128 pytest tests; the seed-7 evaluation is posted to the run summary |
 | Gateway | gofmt, `go vet`, and the end-to-end tests against Postgres 16 and a running engine |
 | Web | Prettier check and the production build |
-| Images | Builds both Docker images, starts the stack with `docker compose`, and runs `make demo` against it |
+| Images | Builds both Docker images, starts the stack with `docker compose`, runs the demo and three clean-database rehearsals, and retains a `demo-rehearsal` log artifact |
 | Publish (`main` only) | Pushes `ghcr.io/<owner>/conxept-engine` and `conxept-gateway`, tagged with the commit SHA and `latest` |
 
 Deployment is image-based: pull the two images and run them next to any Postgres 16 (Tiger Cloud for the demo).
