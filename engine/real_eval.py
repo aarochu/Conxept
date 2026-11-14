@@ -91,7 +91,7 @@ def read_rows(path: Path) -> tuple[list[Row], list[str]]:
                 errors.append(f"line {n}: duplicate id {rid}")
                 continue
             seen.add(rid)
-            if any(v for v in rec.get(None) or []):  # DictReader puts surplus columns under None
+            if None in rec:  # DictReader puts surplus columns under None
                 errors.append(f"line {n} ({rid}): too many columns; quote steps that contain commas, "
                               'e.g. "int(f, t, 0, inf)"')
                 continue
