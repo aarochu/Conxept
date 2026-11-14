@@ -66,6 +66,8 @@ def kind_of(sub: SyntheticSubmission) -> str:
 
 def select_sample(seed: int = SAMPLE_SEED, mix: dict[str, int] = MIX) -> list[SyntheticSubmission]:
     """A fixed, reproducible 100-submission sample from the seed-7 class."""
+    if not mix or set(mix) - set(MIX) or any(type(n) is not int or n < 0 for n in mix.values()) or not sum(mix.values()):
+        raise ValueError("sample mix needs known categories and nonnegative integer counts with a positive total")
     _, subs = generate_class(CLASS_STUDENTS, seed)
     rng = random.Random(seed)
     out: list[SyntheticSubmission] = []
