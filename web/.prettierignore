@@ -1,0 +1,4 @@
+src/gen
+dist
+.angular
+node_modules

@@ -32,3 +32,6 @@ docs/rules.md
 .DS_Store
 .idea/
 .vscode/
+
+# Copied from sql/queries.sql by make gen
+gateway/queries.sql

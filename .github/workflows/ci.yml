@@ -1,0 +1,236 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/misconception
+  ENGINE_ADDR: localhost:50051
+
+jobs:
+  # Contracts first: lint the protos and generate code for all three languages once.
+  generate:
+    name: Protos and codegen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway/go.mod
+          cache-dependency-path: gateway/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - name: buf lint
+        run: npx buf lint
+      - name: Install code generators
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+          go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          pip install "grpcio-tools>=1.85.1"
+      - name: make gen
+        run: make gen PY=python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated
+          retention-days: 1
+          path: |
+            engine/gen
+            gateway/gen
+            gateway/queries.sql
+            web/src/gen
+
+  engine:
+    name: Engine (Python)
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+      - run: pip install -r engine/requirements.txt
+      - name: pytest
+        working-directory: engine
+        run: python -m pytest -q
+      - name: Evaluation (60 students, seed 7)
+        working-directory: engine
+        run: |
+          python evaluate.py 60 7 | tee eval.txt
+          {
+            echo "### Engine evaluation (synthetic class, seed 7)"
+            echo '```'
+            cat eval.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  gateway:
+    name: Gateway (Go, end to end)
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: misconception
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d misconception"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway/go.mod
+          cache-dependency-path: gateway/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+      - name: Apply schema and roles
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f sql/schema.sql -f scripts/roles.sql
+      - name: Start engine
+        run: |
+          pip install -r engine/requirements.txt
+          cd engine
+          nohup python server.py > "$RUNNER_TEMP/engine.log" 2>&1 &
+          for _ in $(seq 1 120); do
+            grep -q "listening" "$RUNNER_TEMP/engine.log" && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/engine.log"
+          exit 1
+      - name: gofmt and vet
+        working-directory: gateway
+        run: |
+          unformatted="$(git ls-files -z '*.go' | xargs -0 gofmt -l)"
+          if [ -n "$unformatted" ]; then echo "gofmt needed:"; echo "$unformatted"; exit 1; fi
+          go vet ./...
+      - name: go test
+        working-directory: gateway
+        run: go test -count=1 -v ./...
+      - name: Engine log
+        if: failure()
+        run: cat "$RUNNER_TEMP/engine.log"
+
+  web:
+    name: Web (Angular)
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+          path: ${{ github.workspace }}
+      - run: npm ci
+      - name: Prettier
+        run: npx prettier --check "src/**/*.{ts,html,css}"
+      - name: Production build
+        run: npx ng build
+
+  # The deployable artifacts: build both images and run the whole stack with docker compose.
+  images:
+    name: Images (compose smoke test)
+    needs: [engine, gateway, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway/go.mod
+          cache-dependency-path: gateway/go.sum
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+      - name: Build and start the stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Seed and process a class through the containers
+        run: |
+          for _ in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/class/anything | grep -q "<app-root"
+          cd gateway && go run ./cmd/demo -gateway http://localhost:8080
+      - name: Compose logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  # CD: publish images to GitHub Container Registry on every push to main.
+  publish:
+    name: Publish images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [engine, gateway]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/conxept-${{ matrix.service }}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

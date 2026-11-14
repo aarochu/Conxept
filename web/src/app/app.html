@@ -1,0 +1,14 @@
+<header class="top">
+  <div class="inner">
+    <a class="brand" routerLink="/">Conxept</a>
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+        >Classes</a
+      >
+      <a routerLink="/try" routerLinkActive="active">Try a derivation</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <router-outlet />
+</main>

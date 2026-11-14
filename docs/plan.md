@@ -55,35 +55,36 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 ### H0 scaffold
 - [x] Repo, folders, docs, protos, SQL, Makefile, compose
 - [ ] Drop starter package into `reference/`
-- [ ] `npx buf lint` clean
-- [ ] Reference acceptance gates green
+- [x] `npx buf lint` clean
+- [ ] Reference acceptance gates green (starter package missing; engine tests cover the same claims)
 - [ ] Confirm course Fourier convention: X(jw) = ∫ x(t) e^(−jwt) dt
 
 ### Engine (A)
-- [ ] `parse_step.py`, `diagnose.py`, `problems.py` ported
-- [ ] `server.py` with ProcessPoolExecutor (4 workers, 5 s timeout)
-- [ ] `remediation.py` (two-route verification, never return unverified)
-- [ ] `synthetic.py` (single seeded RNG, `propagate`)
-- [ ] `agent.py` + number check
+- [x] `parse_step.py`, `diagnose.py`, `problems.py` (written from spec; 32/32 mutations)
+- [x] `server.py` with ProcessPoolExecutor (4 workers, 5 s timeout)
+- [x] `remediation.py` (two-route verification, never return unverified)
+- [x] `synthetic.py` (single seeded RNG, follow-through)
+- [x] `agent.py` + number check (scripted-model test; live model not yet run)
 - [ ] Optional: Wolfram probe
 
 ### Gateway (B)
-- [ ] Go stubs generated, empty handler compiles
-- [ ] First Diagnose call to engine (fallback: grpc-go)
-- [ ] Limits table enforced before engine calls
-- [ ] SeedSyntheticClass, ProcessClass, ListClasses
-- [ ] GetHeatmap, GetClusters, GetSubmission, GetEvaluation
-- [ ] TryDerivation, GenerateRemediation, AnalyzeClass
-- [ ] SPA file server with index.html fallback
+- [x] Go stubs generated, empty handler compiles
+- [x] First Diagnose call to engine (connect-go WithGRPC over h2c worked; no fallback)
+- [x] Limits table enforced before engine calls
+- [x] SeedSyntheticClass, ProcessClass, ListClasses
+- [x] GetHeatmap, GetClusters, GetSubmission, GetEvaluation
+- [x] TryDerivation, GenerateRemediation, AnalyzeClass (AnalyzeClass not run with a live model)
+- [x] SPA file server with index.html fallback
+- [x] 60-student class seeded + processed end to end: 5.4 s cold (target 60 s)
 
 ### Web (C)
-- [ ] Shell, routing, mock gateway
-- [ ] Class list (Seed, Process + progress bar)
-- [ ] Dashboard heatmap + clusters + Analyze log
-- [ ] Cluster page + Generate practice
-- [ ] Submission view
-- [ ] Evaluation page
-- [ ] Try page
+- [x] Shell, routing (built against the real gateway; no mock needed)
+- [x] Class list (Seed, Process + progress bar)
+- [x] Dashboard heatmap + clusters + Analyze log (live model not run)
+- [x] Cluster page + Generate practice
+- [x] Submission view
+- [x] Evaluation page
+- [x] Try page
 
 ### Wrap-up
 - [ ] Baseline (§8.5) run and recorded
