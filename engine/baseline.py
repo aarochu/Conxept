@@ -186,6 +186,8 @@ class Score:
 
 
 def score(sample, steps: list[int]) -> Score:
+    if len(sample) != len(steps):
+        raise ValueError("one answer is required for every sampled submission")
     s = Score(0, 0, 0, 0)
     for sub, got in zip(sample, steps):
         if got == REFUSED:
