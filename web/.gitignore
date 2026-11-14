@@ -45,3 +45,4 @@ Thumbs.db
 # Browser-test evidence stays local or in CI artifacts.
 test-results/
 playwright-report/
+demo-results/
