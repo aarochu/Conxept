@@ -226,10 +226,23 @@ func (s *Store) ClassSubmissions(ctx context.Context, classID string) ([]*v1.Sub
 	})
 }
 
-func (s *Store) ClearDiagnoses(ctx context.Context, classID string) error {
-	_, err := s.pool.Exec(ctx,
-		`DELETE FROM diagnoses d USING submissions sub WHERE d.submission_id = sub.id AND sub.class_id = $1`, classID)
-	return err
+// StartProcessing clears the class's diagnoses and marks it unprocessed, in one transaction,
+// so a run that fails midway never leaves partial results looking complete.
+func (s *Store) StartProcessing(ctx context.Context, classID string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx,
+		`DELETE FROM diagnoses d USING submissions sub WHERE d.submission_id = sub.id AND sub.class_id = $1`,
+		classID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE classes SET processed_at = NULL WHERE id = $1`, classID); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func nullInt(v int32, set bool) any {

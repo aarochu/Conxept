@@ -109,7 +109,7 @@ def values(e: sp.Expr) -> tuple | None:
                 return None
             out.append(v)
         return tuple(out)
-    except (TypeError, ValueError, ZeroDivisionError, AttributeError, OverflowError):
+    except Exception:  # noqa: BLE001 - any failure to evaluate means "cannot be shown equal"
         return None
 
 
@@ -127,20 +127,29 @@ class NotComputable(ValueError):
     pass
 
 
+class DiagnosisTimeout(BaseException):
+    """Raised by the worker's timer. BaseException so no broad `except Exception` swallows it."""
+
+
 def inverse_laplace_termwise(expr: sp.Expr) -> sp.Expr:
     """c/(s+r) becomes c*exp(-r*t)*u(t), term by term, after partial fractions."""
     if expr.has(t, tau, w, sp.Integral):
         raise NotComputable("not a function of s alone")
     out = sp.Integer(0)
-    for term in sp.Add.make_args(sp.apart(sp.together(expr), s)):
-        num, den = sp.fraction(sp.factor(term))
-        if num.has(s):
-            raise NotComputable("numerator depends on s")
-        poly = sp.Poly(den, s)
-        if poly.degree() != 1:
-            raise NotComputable("only simple poles are supported")
-        lead, const = poly.all_coeffs()
-        out += (num / lead) * E(-(const / lead) * t) * H(t)
+    try:
+        terms = sp.Add.make_args(sp.apart(sp.together(expr), s))
+        for term in terms:
+            num, den = sp.fraction(sp.factor(term))
+            if num.has(s):
+                raise NotComputable("numerator depends on s")
+            poly = sp.Poly(den, s)
+            if poly.degree() != 1:
+                raise NotComputable("only simple poles are supported")
+            lead, const = poly.all_coeffs()
+            out += (num / lead) * E(-(const / lead) * t) * H(t)
+    except (sp.PolynomialError, sp.polys.polyerrors.PolificationFailed, ValueError, TypeError) as e:
+        # e.g. sqrt(s^2) in an otherwise valid rewrite: not a rational function SymPy can split.
+        raise NotComputable(f"not a rational function of s: {e}") from e
     return out
 
 
@@ -608,11 +617,19 @@ def classify(family: Family, i: int, prev, expected, student, ctx) -> tuple[list
 
 def diagnose_exprs(family: Family, ctx: dict, steps: list[sp.Expr]) -> Result:
     """steps[0] is the given (may be None); steps[1:] are the student's steps."""
+    correct = None
     for i in range(1, len(steps)):
         try:
             expected = family.true_next(i, steps[i - 1], ctx)
         except NotComputable:
-            expected = None
+            # Every earlier step was valid, so steps[i-1] equals the correct previous value and the
+            # operation applied to that value is the same expectation (e.g. sqrt(s^2) in step 1).
+            if correct is None:
+                correct = [family.given(ctx)] + family.correct_steps(ctx)
+            try:
+                expected = family.true_next(i, correct[i - 1], ctx)
+            except NotComputable:
+                expected = None
         if expected is not None and equiv(steps[i], expected):
             continue
         if expected is None:
@@ -649,7 +666,16 @@ def diagnose(problem, step_texts: list[str]) -> Result:
                 res = Result(status=STATUS_PARSE_ERROR, parse_error=str(e), parse_error_step=i)
                 break
         if res is None:
-            res = diagnose_exprs(family, ctx, [family.given(ctx)] + exprs)
+            try:
+                res = diagnose_exprs(family, ctx, [family.given(ctx)] + exprs)
+            except DiagnosisTimeout:
+                raise
+            except Exception as e:  # noqa: BLE001 - one bad submission must never abort a batch
+                res = Result(
+                    status=STATUS_PARSE_ERROR,
+                    parse_error=f"could not evaluate this derivation ({type(e).__name__})",
+                    parse_error_step=0,
+                )
     res.elapsed_ms = int((time.perf_counter() - start) * 1000)
     return res
 

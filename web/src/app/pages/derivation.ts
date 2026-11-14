@@ -75,6 +75,9 @@ interface StepView {
         </li>
       }
     </ol>
+    @if (generalError(); as msg) {
+      <p class="error general" role="alert">{{ msg }}</p>
+    }
     @if (hasUnchecked()) {
       <p class="muted foot">
         Later steps are not blamed for an earlier mistake; only the first divergence is reported.
@@ -159,6 +162,9 @@ interface StepView {
       color: var(--bad);
       font-size: 0.88rem;
     }
+    .general {
+      margin: 10px 0 0;
+    }
     .foot {
       font-size: 0.85rem;
       margin: 10px 0 0;
@@ -188,8 +194,17 @@ export class DerivationView {
           i < at ? 'valid' : i === at ? 'diverged' : i <= exprs.length ? 'unchecked' : 'pending';
       } else if (d?.status === DiagnosisStatus.PARSE_ERROR) {
         const at = d.parseErrorStep;
+        // at < 1 means the error is about the whole derivation (timeout, internal error).
         state =
-          i === at ? 'parse' : i < at ? 'pending' : i <= exprs.length ? 'unchecked' : 'pending';
+          at < 1
+            ? 'pending'
+            : i === at
+              ? 'parse'
+              : i < at
+                ? 'pending'
+                : i <= exprs.length
+                  ? 'unchecked'
+                  : 'pending';
       }
       out.push({
         index: i,
@@ -202,4 +217,15 @@ export class DerivationView {
   });
 
   readonly hasUnchecked = computed(() => this.views().some((v) => v.state === 'unchecked'));
+
+  /** A parse-error status that names no step (timeout, internal error) is shown as one message. */
+  readonly generalError = computed(() => {
+    const d = this.diagnosis();
+    if (d?.status !== DiagnosisStatus.PARSE_ERROR) return '';
+    const n = this.views().length;
+    if (d.parseErrorStep >= 1 && d.parseErrorStep <= n) return '';
+    return d.parseError === 'timed out'
+      ? 'This derivation took too long to check (over 5 seconds) and was not diagnosed.'
+      : d.parseError || 'This derivation could not be checked.';
+  });
 }

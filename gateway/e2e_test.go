@@ -317,3 +317,49 @@ func TestSPAFallback(t *testing.T) {
 		}
 	}
 }
+
+func TestFailedReprocessMarksClassUnprocessed(t *testing.T) {
+	c, done := newTestGateway(t)
+	defer done()
+	ctx := context.Background()
+	seeded, err := c.SeedSyntheticClass(ctx, connect.NewRequest(&v1.SeedSyntheticClassRequest{Name: "reprocess", NumStudents: 2}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := seeded.Msg.ClassInfo.Id
+	drain := func(c misconceptionv1connect.GatewayServiceClient) error {
+		s, err := c.ProcessClass(ctx, connect.NewRequest(&v1.ProcessClassRequest{ClassId: id}))
+		if err != nil {
+			return err
+		}
+		for s.Receive() {
+		}
+		return s.Err()
+	}
+	if err := drain(c); err != nil {
+		t.Fatal(err)
+	}
+
+	// Same database, engine unreachable: the rerun fails and the class must not read as processed.
+	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	store, _ := NewStore(pool)
+	broken := &Gateway{engine: newEngineClient("localhost:1"), agent: newAgentClient("localhost:1"), store: store}
+	srv := httptest.NewServer(newMux(broken, t.TempDir()))
+	defer srv.Close()
+	if err := drain(misconceptionv1connect.NewGatewayServiceClient(http.DefaultClient, srv.URL)); code(err) != connect.CodeUnavailable {
+		t.Fatalf("broken rerun: %v", err)
+	}
+	classes, err := c.ListClasses(ctx, connect.NewRequest(&v1.ListClassesRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cl := range classes.Msg.Classes {
+		if cl.Id == id && cl.Processed {
+			t.Fatal("class still marked processed after a failed rerun")
+		}
+	}
+}

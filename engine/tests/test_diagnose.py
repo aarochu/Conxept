@@ -90,3 +90,24 @@ def test_verdict_is_deterministic():
     p = problem_from_id("f2-a1-b2")
     steps = ["int(exp(-tau)*exp(-2*(t-tau)),tau,0,t)"]
     assert diagnose(p, steps).__dict__ | {"elapsed_ms": 0} == diagnose(p, steps).__dict__ | {"elapsed_ms": 0}
+
+
+def test_unusual_but_valid_rewrite_does_not_crash():
+    # sqrt(s^2) equals s on the sampled half-plane, so step 1 is valid; SymPy cannot split it into
+    # partial fractions, so step 2's expectation must come from the correct step 1 instead.
+    p = problem_from_id("f1-p1-q2-n0")
+    ok = diagnose(p, ["sqrt(s^2)/((s+1)*(s+2))", "(2*exp(-2*t) - exp(-t))*u(t)"])
+    assert ok.status == STATUS_VALID
+    bad = diagnose(p, ["sqrt(s^2)/((s+1)*(s+2))", "2*exp(-2*t) - exp(-t)"])
+    assert bad.step_index == 2 and bad.misconception_ids == ["forgot_causality_u_of_t"]
+
+
+def test_unexpected_engine_error_is_contained(monkeypatch):
+    import diagnose as d
+
+    def boom(*a, **k):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(d, "diagnose_exprs", boom)
+    r = d.diagnose(problem_from_id("f3-a1"), ["1/(1+j*w)"])
+    assert r.status == STATUS_PARSE_ERROR and "could not evaluate" in r.parse_error

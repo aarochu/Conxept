@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import signal
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -34,12 +35,41 @@ _pool: ProcessPoolExecutor | None = None
 # Module-level so they pickle into the process pool.
 
 
+def _timed_out() -> dict:
+    return {
+        "status": 3,
+        "step_index": 0,
+        "misconception_ids": [],
+        "residual_label": "",
+        "expected_latex": "",
+        "student_latex": "",
+        "parse_error": "timed out",
+        "parse_error_step": 0,
+        "elapsed_ms": int(TIMEOUT_S * 1000),
+    }
+
+
+def _raise_timeout(signum, frame):
+    from diagnose import DiagnosisTimeout
+
+    raise DiagnosisTimeout()
+
+
 def job_diagnose(problem_id: str, steps: list[str]) -> dict:
-    from diagnose import diagnose
+    """Runs in a pool worker. A real-time timer interrupts SymPy/mpmath after TIMEOUT_S,
+    so a pathological step frees its worker instead of occupying it indefinitely."""
+    from diagnose import DiagnosisTimeout, diagnose
     from problems import problem_from_id
 
-    r = diagnose(problem_from_id(problem_id), steps)
-    return r.__dict__
+    previous = signal.signal(signal.SIGALRM, _raise_timeout)
+    signal.setitimer(signal.ITIMER_REAL, TIMEOUT_S)
+    try:
+        return diagnose(problem_from_id(problem_id), steps).__dict__
+    except DiagnosisTimeout:
+        return _timed_out()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 def job_generate_class(num_students, seed, problem_ids, error_rate, heldout_share):
@@ -121,19 +151,22 @@ def _steps_text(steps) -> list[str]:
     return [st.expr for st in sorted(steps, key=lambda x: x.index)]
 
 
+_slots: asyncio.Semaphore | None = None
+
+
 async def run_diagnosis(problem_id: str, steps: list[str]) -> dict:
+    """At most WORKERS jobs are handed to the pool at once, so the timeout measures running time,
+    not time spent queued behind the rest of a batch. The worker enforces TIMEOUT_S itself; the
+    asyncio timeout is only a backstop."""
+    assert _slots is not None, "serve() creates the semaphore"
     loop = asyncio.get_running_loop()
-    try:
-        return await asyncio.wait_for(
-            loop.run_in_executor(_pool, job_diagnose, problem_id, steps), TIMEOUT_S
-        )
-    except asyncio.TimeoutError:
-        return {
-            "status": 3,
-            "parse_error": "timed out",
-            "parse_error_step": 0,
-            "elapsed_ms": int(TIMEOUT_S * 1000),
-        }
+    async with _slots:
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(_pool, job_diagnose, problem_id, steps), TIMEOUT_S + 2
+            )
+        except asyncio.TimeoutError:
+            return _timed_out()
 
 
 def _known_problem(problem_id: str) -> bool:
@@ -262,7 +295,8 @@ def _warm():
 
 
 async def serve(port: int = 50051) -> grpc.aio.Server:
-    global _pool
+    global _pool, _slots
+    _slots = asyncio.Semaphore(WORKERS)  # bound to this server's event loop
     if _pool is None:
         _pool = ProcessPoolExecutor(max_workers=WORKERS, initializer=_warm)
         # Start every worker now, before gRPC threads exist and before the first request.

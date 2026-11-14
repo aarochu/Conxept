@@ -126,7 +126,9 @@ export class TryPage {
         leading.push(s.trim());
       }
       if (!pid || leading.length === 0) {
+        this.seq++; // drop any response still in flight for the old input
         this.diagnosis.set(undefined);
+        this.checking.set(false);
         return;
       }
       const timer = setTimeout(() => this.check(pid, leading), DEBOUNCE_MS);
@@ -150,7 +152,9 @@ export class TryPage {
     this.problemId.set(id);
     this.problem.set(p);
     this.steps.set(p ? p.steps.map(() => '') : []);
+    this.seq++; // a response for the previous problem must not land on this one
     this.diagnosis.set(undefined);
+    this.checking.set(false);
   }
 
   setStep(i: number, value: string) {

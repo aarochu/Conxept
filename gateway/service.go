@@ -27,6 +27,7 @@ const (
 	maxExprLen          = 400
 	maxInstructionLen   = 500
 	maxClusterExamples  = 5
+	insertBatchSize     = 50
 )
 
 type Gateway struct {
@@ -190,8 +191,8 @@ func (g *Gateway) ProcessClass(ctx context.Context, req *connect.Request[v1.Proc
 	if err != nil {
 		return dbErr(err, "class")
 	}
-	// Rerunning replaces existing diagnoses for this class.
-	if err := g.store.ClearDiagnoses(ctx, classID); err != nil {
+	// Rerunning replaces existing diagnoses; the class reads as unprocessed until this run finishes.
+	if err := g.store.StartProcessing(ctx, classID); err != nil {
 		return dbErr(err, "class")
 	}
 	total := int32(len(subs))
@@ -206,11 +207,27 @@ func (g *Gateway) ProcessClass(ctx context.Context, req *connect.Request[v1.Proc
 		return engineErr(err)
 	}
 	defer batch.Close()
+	// The engine streams one result per message; buffer them so a remote database
+	// sees one round trip per insertBatchSize results instead of one per submission.
 	var done int32
+	pending := make([]*v1.SubmissionResult, 0, insertBatchSize)
+	flush := func() error {
+		if len(pending) == 0 {
+			return nil
+		}
+		if err := g.store.InsertDiagnoses(ctx, pending); err != nil {
+			return dbErr(err, "diagnosis")
+		}
+		pending = pending[:0]
+		return nil
+	}
 	for batch.Receive() {
 		msg := batch.Msg()
-		if err := g.store.InsertDiagnoses(ctx, msg.Results); err != nil {
-			return dbErr(err, "diagnosis")
+		pending = append(pending, msg.Results...)
+		if len(pending) >= insertBatchSize {
+			if err := flush(); err != nil {
+				return err
+			}
 		}
 		done = msg.Done
 		if err := stream.Send(&v1.ProcessClassResponse{Done: msg.Done, Total: msg.Total}); err != nil {
@@ -219,6 +236,9 @@ func (g *Gateway) ProcessClass(ctx context.Context, req *connect.Request[v1.Proc
 	}
 	if err := batch.Err(); err != nil {
 		return engineErr(err)
+	}
+	if err := flush(); err != nil {
+		return err
 	}
 	if done != total {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("engine stream ended at %d of %d", done, total))

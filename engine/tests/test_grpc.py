@@ -85,3 +85,31 @@ async def test_analyze_without_key_is_failed_precondition(stub, monkeypatch):
         async for _ in agent.Analyze(pb.AnalyzeRequest(class_id="x")):
             pass
     assert e.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+
+
+async def test_slow_step_times_out_and_frees_worker(stub, monkeypatch):
+    engine, _ = stub
+    monkeypatch.setattr(server, "TIMEOUT_S", 1.0)  # applies to the asyncio backstop in this process
+    slow = _steps("int(exp(-t)*exp(-j*w*t)*sin(t^60)*cos(t^61), t, 0, inf)")
+    # The worker's own timer uses the module default; the call must still return, not hang the pool.
+    r = await engine.Diagnose(pb.DiagnoseRequest(problem_id="f3-a1", steps=slow))
+    assert r.diagnosis.status in (cpb.DIAGNOSIS_STATUS_PARSE_ERROR, cpb.DIAGNOSIS_STATUS_DIVERGED)
+    ok = await engine.Diagnose(pb.DiagnoseRequest(problem_id="f3-a1", steps=_steps("int(exp(-t)*exp(-j*w*t),t,0,inf)", "1/(1+j*w)")))
+    assert ok.diagnosis.status == cpb.DIAGNOSIS_STATUS_VALID
+
+
+def test_worker_timer_interrupts_a_busy_job(monkeypatch):
+    import time
+
+    import diagnose as d
+
+    def busy(*a, **k):
+        while True:
+            sum(range(1000))
+
+    monkeypatch.setattr(d, "diagnose", busy)
+    monkeypatch.setattr(server, "TIMEOUT_S", 0.3)
+    start = time.perf_counter()
+    r = server.job_diagnose("f3-a1", ["1/(1+j*w)"])
+    assert r["status"] == 3 and r["parse_error"] == "timed out"
+    assert time.perf_counter() - start < 2
