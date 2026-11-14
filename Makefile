@@ -1,6 +1,6 @@
 .PHONY: gen db engine gateway web test demo lint
 
-PY ?= python3
+PY ?= $(CURDIR)/.venv/bin/python
 
 gen: ## buf generate plus Python stubs
 	npx buf generate
