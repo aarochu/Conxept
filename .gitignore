@@ -35,3 +35,10 @@ docs/rules.md
 
 # Copied from sql/queries.sql by make gen
 gateway/queries.sql
+
+# Local evaluation outputs
+# Real student derivations stay local (spec 8.4); only the template is committed
+data/real/derivations.csv
+engine/real_eval_out/
+# Baseline run outputs (spec 8.5)
+engine/baseline_out/
