@@ -111,3 +111,9 @@ def test_unexpected_engine_error_is_contained(monkeypatch):
     monkeypatch.setattr(d, "diagnose_exprs", boom)
     r = d.diagnose(problem_from_id("f3-a1"), ["1/(1+j*w)"])
     assert r.status == STATUS_PARSE_ERROR and "could not evaluate" in r.parse_error
+
+
+def test_complex_heaviside_does_not_abort_diagnosis():
+    r = diagnose(problem_from_id("f3-a1"), ["u(j)"])
+    assert r.status == STATUS_PARSE_ERROR
+    assert r.parse_error_step == 1
