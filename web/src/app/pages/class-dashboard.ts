@@ -198,7 +198,7 @@ interface HeatRow {
       margin-left: 3px;
     }
     .cell.hot {
-      color: #fff;
+      color: var(--text);
     }
     .clusters {
       list-style: none;

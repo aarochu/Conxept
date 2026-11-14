@@ -115,7 +115,7 @@ interface StepView {
       background: var(--bad-soft);
     }
     .steps li.unchecked {
-      opacity: 0.6;
+      border-style: dashed;
     }
     .shead {
       display: flex;
