@@ -11,6 +11,16 @@ HEADER = ["id", "problem_id", "student", "step1", "step2", "step3", "step4", "st
           "true_step", "true_label", "notes"]
 
 
+def test_wrong_step_does_not_hide_label_failures():
+    label = "forgot_causality_u_of_t"
+    catalog = real_eval.Row("R1", "f1-p1-q2-n0", "A", ["s", "t"], 2, label)
+    other = real_eval.Row("R2", "f1-p1-q2-n0", "B", ["s", "t"], 2, "other")
+    outcomes = [real_eval.Outcome(row, status=2, step=1, labels=(label,)) for row in (catalog, other)]
+    counts = summarize(outcomes)["counts"]
+    assert counts["labelled_catalog"] == 1 and counts["label_correct"] == 0
+    assert counts["labelled_other"] == 1 and counts["other_named"] == 1
+
+
 def write(path, rows):
     with path.open("w", newline="") as f:
         w = csv.writer(f)

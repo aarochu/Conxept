@@ -177,13 +177,13 @@ def summarize(outcomes: list[Outcome]) -> dict:
         m["missed"] += o.status == STATUS_VALID
         if at_step:
             buckets[o.bucket] += 1
-            label = o.row.true_label
-            if label and label != "other":
-                m["labelled_catalog"] += 1
-                m["label_correct"] += label in o.labels
-            elif label == "other":
-                m["labelled_other"] += 1
-                m["other_named"] += o.bucket == "catalog"  # should stay 0
+        label = o.row.true_label
+        if label and label != "other":
+            m["labelled_catalog"] += 1
+            m["label_correct"] += at_step and label in o.labels
+        elif label == "other":
+            m["labelled_other"] += 1
+            m["other_named"] += o.bucket == "catalog"  # also count names assigned at the wrong step
     return {"counts": dict(m), "buckets": dict(buckets)}
 
 
