@@ -12,9 +12,11 @@ func TestRouteShellRevalidation(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("<app-root></app-root>"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	res := httptest.NewRecorder()
-	spaFileServer(dir).ServeHTTP(res, httptest.NewRequest("GET", "/class/demo", nil))
-	if res.Code != 200 || res.Header().Get("Cache-Control") != "no-cache" {
-		t.Fatalf("%d %v", res.Code, res.Header())
+	for _, route := range []string{"/", "/class/demo", "/index.html"} {
+		res := httptest.NewRecorder()
+		spaFileServer(dir).ServeHTTP(res, httptest.NewRequest("GET", route, nil))
+		if (res.Code != 200 && res.Code != 301) || res.Header().Get("Cache-Control") != "no-cache" {
+			t.Errorf("%s: %d %v", route, res.Code, res.Header())
+		}
 	}
 }
