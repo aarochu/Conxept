@@ -123,7 +123,9 @@ def ask_model(client, prompt: str, model: str, effort: str, use_fallbacks: bool 
     text = next((b.text for b in response.content if b.type == "text"), "")
     try:
         data = json.loads(text)
-        return ModelAnswer(int(data["first_wrong_step"]), str(data.get("misconception", "")), served_by=response.model)
+        if not isinstance(data, dict) or type(data.get("first_wrong_step")) is not int or not 0 <= data["first_wrong_step"] <= 6 or not isinstance(data.get("misconception"), str):
+            raise ValueError("answer must contain an integer step from 0 to 6 and a misconception string")
+        return ModelAnswer(data["first_wrong_step"], data["misconception"], served_by=response.model)
     except (ValueError, KeyError, TypeError) as e:
         return ModelAnswer(REFUSED, "", served_by=response.model, error=f"unparseable answer: {e}")
 
