@@ -1,4 +1,4 @@
-.PHONY: gen db engine gateway web test demo lint eval test-gateway web-build
+.PHONY: gen db engine gateway web test demo lint eval test-gateway web-build rehearse
 
 PY ?= $(CURDIR)/.venv/bin/python
 
@@ -37,3 +37,6 @@ test-gateway: ## gateway tests against a running engine and Postgres
 
 eval: ## engine-only evaluation on a seeded synthetic class
 	cd engine && $(PY) evaluate.py 60 7
+
+rehearse: ## demo script 3 times from a clean local database (deletes local data; needs engine + gateway running)
+	cd gateway && go run ./cmd/rehearse -reset -runs 3
