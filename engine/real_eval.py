@@ -258,12 +258,19 @@ def main(argv=None) -> int:
     for e in errors:
         print(f"skipped: {e}", file=sys.stderr)
     chosen = [r for r in rows if args.split == "all" or split_of(r.id) == args.split]
+    if not chosen:
+        print(f"no rows in selected split: {args.split}", file=sys.stderr)
+        return 2
     outcomes = [evaluate_row(r) for r in chosen]
     for o in outcomes:
         if o.input_error:
             print(f"skipped {o.row.id}: {o.input_error}", file=sys.stderr)
         elif o.status == STATUS_PARSE_ERROR:
             print(f"parse error {o.row.id} step {o.step}: {o.parse_error}", file=sys.stderr)
+
+    if not any(not o.input_error and o.status in (STATUS_VALID, STATUS_DIVERGED) for o in outcomes):
+        print("no evaluable rows in selected split", file=sys.stderr)
+        return 2
 
     args.out.mkdir(parents=True, exist_ok=True)
     text = report(summarize(outcomes), args.split, str(args.csv))
