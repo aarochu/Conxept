@@ -6,7 +6,7 @@ Built at HackPrinceton (Nov 14–15, 2026).
 
 ## Why not just a chat model
 
-A chat model can mark one derivation. It can't deterministically prove which step broke, aggregate hundreds of submissions into a class heatmap, or guarantee a generated answer key is correct. Those three things are the product. **Correctness is decided by SymPy, never by a language model.**
+Conxept combines repeatable step checks, class-wide misconception counts, and checked practice problems in one instructor workflow. **Correctness is decided by the math engine, never by a language model.** Equivalence is tested by numerical sampling, not symbolic proof. A model-only comparison has not yet been run.
 
 ## Scope
 
@@ -101,6 +101,8 @@ Analyze, `ANTHROPIC_API_KEY`.
 
 - [docs/spec.md](docs/spec.md): full build spec (source of truth)
 - [docs/plan.md](docs/plan.md): build plan, lanes, gates, checklist
+- [docs/devpost.md](docs/devpost.md): submission draft with measured claims and explicit limits
+- [docs/submission-evidence.md](docs/submission-evidence.md): reproduction details and remaining submission gates
 
 ## Acknowledgements
 
