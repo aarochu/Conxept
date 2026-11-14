@@ -212,14 +212,16 @@ def write_csv(path: Path, sample, model_runs, engine_runs) -> None:
         w = csv.writer(f)
         header = ["submission_id", "problem_id", "kind", "true_step", "true_label", "catalog_name"]
         for r in range(len(model_runs)):
-            header += [f"model_step_run{r + 1}", f"model_misconception_run{r + 1}"]
+            header += [f"model_step_run{r + 1}", f"model_misconception_run{r + 1}",
+                       f"model_served_by_run{r + 1}", f"model_refused_run{r + 1}", f"model_error_run{r + 1}"]
         header += ["engine_step", "engine_labels", "model_name_matches_catalog (fill by hand: y/n)"]
         w.writerow(header)
         for i, sub in enumerate(sample):
             name = CATALOG[sub.true_label].name if sub.true_label in CATALOG else ""
             row = [sub.id, sub.problem_id, kind_of(sub), sub.true_step_index, sub.true_label, name]
             for run in model_runs:
-                row += [run[i].first_wrong_step, run[i].misconception or run[i].error]
+                row += [run[i].first_wrong_step, run[i].misconception or run[i].error,
+                        run[i].served_by, run[i].refused, run[i].error]
             e = engine_runs[0][i]
             row += [e.first_wrong_step, ";".join(e.labels), ""]
             w.writerow(row)
