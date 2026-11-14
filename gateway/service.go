@@ -154,7 +154,7 @@ func (g *Gateway) SeedSyntheticClass(ctx context.Context, req *connect.Request[v
 	if heldout == 0 {
 		heldout = defaultHeldoutShare
 	}
-	if errRate < 0 || errRate > 1 || heldout < 0 || heldout > 1 {
+	if !(errRate >= 0 && errRate <= 1 && heldout >= 0 && heldout <= 1) {
 		return nil, invalid("error_rate and heldout_share must be 0 to 1")
 	}
 	name := strings.TrimSpace(m.Name)
