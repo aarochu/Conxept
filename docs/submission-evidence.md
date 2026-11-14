@@ -22,7 +22,7 @@ Gateway integration tests passed against that instance. The production web build
 - [ ] Collect 10–20 anonymized classmate derivations, label them independently, and reserve the test split before tuning. Do not present template examples as real data.
 - [ ] Run `make baseline` with valid credentials; score misconception names by hand and report results even if the model wins.
 - [ ] Run Analyze with a live model and inspect both the tool events and the final brief.
-- [ ] Perform a visual walkthrough and record the three-minute demo. If Analyze is unavailable, omit that segment and say so.
+- [ ] Review the browser walkthrough and sub-two-minute draft recording; confirm current event timing before uploading. If Analyze is unavailable, show the fallback explicitly.
 - [ ] Provision and smoke-test the hosted database and application before claiming a Tiger Cloud deployment.
 - [ ] Confirm team details, prize eligibility, submission deadline, and demo slot against the current event handbook.
 - [ ] Add the video and project links to the Devpost entry, review the final claims, and submit.

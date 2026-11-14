@@ -51,11 +51,12 @@ window; it requires no model key or real submissions.
 
 With a disposable local stack running and **no model key on the engine**, run
 `npm run record:demo` from `web/`. It seeds another synthetic class, exercises the
-instructor flow, and saves a silent three-minute captioned WebM under
+instructor flow, and saves a silent captioned WebM targeting 115 seconds under
 `web/demo-results/`. It never resets the database. Use `PLAYWRIGHT_BASE_URL` for
 another local port. This command is excluded from normal browser regression runs.
 
-The recording follows spec §11 and explicitly shows the no-key Analyze fallback.
+The recording compresses spec §11 to fit the public listing's two-minute limit
+and explicitly shows the no-key Analyze fallback. See [event checks](../docs/event-checks.md).
 It fails if the expected sample counts or workflow steps change. Review the
 video, add narration if desired, and supply the final video link before Devpost
 submission. It is not evidence of a live model call, hosted deployment, or
