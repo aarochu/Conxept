@@ -47,6 +47,10 @@ acceptance: ## fail on unmet spec 8.2 synthetic accuracy and latency targets
 rehearse: ## demo script 3 times from a clean local database (deletes local data; needs engine + gateway running)
 	cd gateway && go run ./cmd/rehearse -reset -runs 3
 SPLIT ?= test
+.PHONY: real-check
+real-check: ## check collection metadata without diagnosing held-out derivations
+	cd engine && $(PY) real_eval.py ../data/real/derivations.csv --split all --check
+
 .PHONY: worksheet
 worksheet: ## generate the anonymous eight-problem real-data collection sheet
 	cd engine && $(PY) worksheet.py
