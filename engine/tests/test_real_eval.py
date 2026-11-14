@@ -73,3 +73,11 @@ def test_unquoted_comma_is_explained(tmp_path):
     p.write_text(",".join(HEADER) + "\nR1,f3-a1,A,int(exp(-t)*exp(-j*w*t),t,0,inf),1/(1+j*w),,,,,0,,\n")
     rows, errors = read_rows(p)
     assert rows == [] and "quote steps that contain commas" in errors[0]
+
+
+def test_misspelled_label_is_an_input_error(tmp_path):
+    p = tmp_path / "d.csv"
+    write(p, [["R1", "f1-p1-q2-n0", "A", "2/(s+2) - 1/(s+1)", "2*exp(-2*t) - exp(-t)", "", "", "", "", "2",
+               "forgot_causality"]])
+    rows, _ = read_rows(p)
+    assert "not a catalog id" in evaluate_row(rows[0]).input_error
