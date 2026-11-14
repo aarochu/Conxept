@@ -81,7 +81,7 @@ def split_of(row_id: str) -> str:
 
 def read_rows(path: Path) -> tuple[list[Row], list[str]]:
     rows, errors, seen = [], [], set()
-    with path.open(newline="") as f:
+    with path.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         headers = reader.fieldnames or []
         required = {"id", "problem_id", "step1", "true_step"}

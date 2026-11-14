@@ -189,6 +189,12 @@ jobs:
           name: generated
       - name: Build and start the stack
         run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Validate hosted deployment configuration
+        env:
+          IMAGE_TAG: ci-validation
+          GATEWAY_DATABASE_URL: postgres://gateway:example@database/demo?sslmode=require
+          ENGINE_DATABASE_URL: postgres://engine_ro:example@database/demo?sslmode=require
+        run: docker compose -f deploy/compose.yml config --quiet
       - name: Seed and process a class through the containers
         run: |
           for _ in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && break; sleep 1; done

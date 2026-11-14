@@ -212,8 +212,8 @@ func demoSteps() []step {
 			s.eval = fmt.Sprintf("false alarms %d/%d, step %d/%d, label %d/%d, held-out %d/%d",
 				e.FalseAlarms, e.CorrectSubmissions, e.DivergenceStepCorrect, e.DivergenceStepExpected,
 				e.LabelCorrect, e.LabelExpected, e.HeldoutDetected, e.HeldoutExpected)
-			if e.FalseAlarms != 0 {
-				return "", fmt.Errorf("false alarms: %s", s.eval)
+			if err := checkEvaluation(e); err != nil {
+				return "", fmt.Errorf("%w: %s", err, s.eval)
 			}
 			return s.eval, nil
 		}, false},
@@ -257,6 +257,25 @@ func demoSteps() []step {
 			return "200", nil
 		}, false},
 	}
+}
+
+func checkEvaluation(e *v1.GetEvaluationResponse) error {
+	if e.Total != 480 || e.CorrectSubmissions <= 0 || e.FalseAlarms != 0 {
+		return errors.New("evaluation must cover 480 submissions with correct examples and zero false alarms")
+	}
+	for _, metric := range []struct {
+		name                   string
+		got, expected, minimum int32
+	}{
+		{"step accuracy", e.DivergenceStepCorrect, e.DivergenceStepExpected, 99},
+		{"label accuracy", e.LabelCorrect, e.LabelExpected, 95},
+		{"held-out detection", e.HeldoutDetected, e.HeldoutExpected, 99},
+	} {
+		if metric.expected <= 0 || metric.got < 0 || metric.got > metric.expected || int64(metric.got)*100 < int64(metric.expected)*int64(metric.minimum) {
+			return fmt.Errorf("%s below %d%% or invalid denominator", metric.name, metric.minimum)
+		}
+	}
+	return nil
 }
 
 func firstCatalog(clusters []*v1.Cluster) *v1.Cluster {
