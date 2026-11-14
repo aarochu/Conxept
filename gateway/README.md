@@ -40,3 +40,20 @@ make test-gateway   # Go tests against the running engine and Postgres
 - **Submission ids**: the engine's synthetic ids are derived from the seed, so the gateway gives every stored submission a fresh UUID and remaps ground truth. Seeding the same seed twice therefore works.
 - **ProcessClass** clears the class's diagnoses, streams the engine's `DiagnoseBatch`, inserts each result as it arrives, and sets `processed_at` only when every submission is done.
 - **Briefs**: `AnalyzeClass` stores each `BriefEvent` in `briefs` (the engine never writes to the database).
+
+## Live Analyze acceptance gate
+
+The normal rehearsal may skip Analyze when no model key is configured. To check
+the plan's H8–H12 live-brief gate, start the engine with a valid API key and run:
+
+```bash
+cd gateway
+go run ./cmd/rehearse -runs 1 -require-analyze
+```
+
+This inserts a synthetic class without resetting the database. It fails if
+Analyze errors, ends without a brief, or returns a brief without calling tools.
+The engine still performs the number check. A successful scripted test only
+validates the harness; do not mark the live-model plan item complete until this
+command passes against a real model and the brief is inspected. For a disposable
+local database, add `-reset -runs 3` to combine it with the clean-database gate.
