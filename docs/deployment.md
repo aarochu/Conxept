@@ -8,7 +8,7 @@ Create a service using the [Tiger Cloud quickstart](https://www.tigerdata.com/do
 
 Connect with `psql` using the service administrator connection and apply `sql/schema.sql` to a new, dedicated demo database. Do not apply `scripts/roles.sql` in the cloud: it contains local development credentials and a hard-coded database name.
 
-Create a dedicated engine role as the schema owner. The [Tiger Cloud role guide](https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-aws/security/read-only-role) documents the underlying grants:
+Connected as the schema owner, create a dedicated read-only engine role; the engine must never own the schema. The [Tiger Cloud role guide](https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-aws/security/read-only-role) documents the underlying grants:
 
 ```sql
 CREATE ROLE engine_ro LOGIN;
