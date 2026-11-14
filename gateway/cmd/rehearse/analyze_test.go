@@ -29,6 +29,7 @@ func TestRequireAnalyze(t *testing.T) {
 	for _, tools := range []bool{false, true} {
 		_, handler := misconceptionv1connect.NewGatewayServiceHandler(&scriptedAnalyze{tools: tools})
 		server := httptest.NewServer(handler)
+		t.Cleanup(server.Close)
 		client := misconceptionv1connect.NewGatewayServiceClient(http.DefaultClient, server.URL)
 		for _, strict := range []bool{false, true} {
 			for _, st := range demoSteps(strict) {
@@ -44,6 +45,5 @@ func TestRequireAnalyze(t *testing.T) {
 				}
 			}
 		}
-		server.Close()
 	}
 }

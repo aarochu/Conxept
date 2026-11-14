@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from diagnose import CATALOG, STATUS_DIVERGED, STATUS_PARSE_ERROR, STATUS_VALID, DiagnosisTimeout, diagnose
+from parse_step import ParseError, parse_step
 from problems import problem_from_id
 
 MAX_STEPS = 6
@@ -163,6 +164,21 @@ def validate_row(row: Row) -> Outcome | None:
     return None
 
 
+def check_row(row: Row) -> Outcome | None:
+    """validate_row plus Step DSL syntax: parsing is not diagnosis, so no score is exposed."""
+    invalid = validate_row(row)
+    if invalid is not None:
+        return invalid
+    for i, text in enumerate(row.steps, start=1):
+        try:
+            parse_step(text)
+        except ParseError as e:
+            return Outcome(row, input_error=f"step {i} does not parse: {e}")
+        except Exception as e:  # noqa: BLE001 - SymPy can reject a syntactically valid step
+            return Outcome(row, input_error=f"step {i} could not be built ({type(e).__name__})")
+    return None
+
+
 def evaluate_row(row: Row) -> Outcome:
     invalid = validate_row(row)
     if invalid is not None:
@@ -275,11 +291,14 @@ def main(argv=None) -> int:
         print(f"no rows in selected split: {args.split}", file=sys.stderr)
         return 2
     if args.check:
-        invalid = [issue for row in chosen if (issue := validate_row(row)) is not None]
+        invalid = [issue for row in chosen if (issue := check_row(row)) is not None]
         for issue in invalid:
             print(f"invalid {issue.row.id}: {issue.input_error}", file=sys.stderr)
-        print(f"Checked {len(chosen)} rows in split {args.split}; no diagnoses calculated or score files written.")
-        return 2 if errors or invalid else 0
+        failed = len(errors) + len(invalid)
+        verdict = f"FAILED: {failed} problem(s), listed above" if failed else "all rows valid"
+        print(f"Checked {len(chosen)} rows in split {args.split}: {verdict}; "
+              "no diagnoses calculated or score files written.")
+        return 2 if failed else 0
     outcomes = [evaluate_row(r) for r in chosen]
     for o in outcomes:
         if o.input_error:

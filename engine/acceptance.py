@@ -5,9 +5,12 @@ import json
 from pathlib import Path
 
 from evaluate import run
+from problems import DEFAULT_IDS
+
+STUDENTS, SEED = 60, 7
 
 
-def assess(result):
+def assess(result, students=STUDENTS):
     metrics = result["metrics"]
     failures = []
     for key in ("parse_errors", "false_alarms", "heldout_named"):
@@ -21,8 +24,9 @@ def assess(result):
         total, correct = metrics.get(denominator, 0), metrics.get(numerator, 0)
         if total <= 0 or not 0 <= correct <= total or correct / total < threshold:
             failures.append(f"{name} must be at least {threshold:.0%} with a nonempty denominator")
-    if metrics.get("total", 0) != 480 or metrics.get("correct_submissions", 0) <= 0:
-        failures.append("expected 480 submissions including correct derivations")
+    expected_total = students * len(DEFAULT_IDS)
+    if metrics.get("total", 0) != expected_total or metrics.get("correct_submissions", 0) <= 0:
+        failures.append(f"expected {expected_total} submissions including correct derivations")
     if not 0 <= result["p95_s"] <= .5:
         failures.append("per-diagnosis p95 must be at most 0.5 seconds")
     return failures
@@ -32,10 +36,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, help="optional JSON report path")
     args = parser.parse_args(argv)
-    result = run(60, 7, clear_value_cache=True)
-    failures = assess(result)
+    result = run(STUDENTS, SEED, clear_value_cache=True)
+    failures = assess(result, STUDENTS)
     report = {
-        "students": 60, "seed": 7, "metrics": result["metrics"],
+        "students": STUDENTS, "seed": SEED, "metrics": result["metrics"],
         "p95_s": result["p95_s"], "median_s": result["median_s"],
         "max_s": result["max_s"], "passed": not failures, "failures": failures,
         "timing": "numerical value cache cleared before each diagnosis",

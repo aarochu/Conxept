@@ -123,12 +123,15 @@ def equiv(a: sp.Expr, b: sp.Expr) -> bool:
     return _close(values(a), values(b))
 
 
-def scaled_values(k: sp.Expr, e: sp.Expr) -> tuple | None:
-    """Values of k*e for a constant k, from the values of e: no new quadrature is run."""
-    ve, vk = values(e), values(k)
+def _scale(vk: tuple | None, ve: tuple | None) -> tuple | None:
     if ve is None or vk is None:
         return None
     return tuple(a * b for a, b in zip(vk, ve))
+
+
+def scaled_values(k: sp.Expr, e: sp.Expr) -> tuple | None:
+    """Values of k*e for a constant k, from the values of e: no new quadrature is run."""
+    return _scale(values(k), values(e))
 
 
 # ------------------------------------------------------------- transforms
@@ -587,9 +590,9 @@ _FACTORS = [
 def residual_label(student: sp.Expr, expected: sp.Expr) -> str:
     # k * expected is sampled by scaling expected's values, so an integral is not re-evaluated
     # seven times (this kept Fourier step-1 residual checks over the 0.5 s p95 target).
-    vs = values(student)
+    vs, ve = values(student), values(expected)
     for label, k in _FACTORS:
-        if _close(vs, scaled_values(k, expected)):
+        if _close(vs, _scale(values(k), ve)):
             return label
     for var in (s, w, t):
         if expected.has(var) and equiv(student, expected.subs(var, -var)):

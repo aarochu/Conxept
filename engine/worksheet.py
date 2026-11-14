@@ -5,6 +5,8 @@ from pathlib import Path
 
 from problems import default_problems
 
+DEFAULT_OUT = Path(__file__).resolve().parents[1] / "data" / "real" / "worksheet.md"
+
 
 def render():
     lines = [
@@ -36,7 +38,7 @@ def render():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, default=Path("../data/real/worksheet.md"))
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(), encoding="utf-8")
