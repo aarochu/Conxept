@@ -14,12 +14,12 @@ import sys
 import time
 from collections import Counter
 
-from diagnose import STATUS_DIVERGED, STATUS_PARSE_ERROR, diagnose
+from diagnose import STATUS_DIVERGED, STATUS_PARSE_ERROR, diagnose, values
 from problems import problem_from_id
 from synthetic import generate_class
 
 
-def run(num_students: int = 60, seed: int = 7) -> dict:
+def run(num_students: int = 60, seed: int = 7, *, clear_value_cache: bool = False) -> dict:
     t0 = time.perf_counter()
     _, subs = generate_class(num_students, seed)
     gen_s = time.perf_counter() - t0
@@ -28,6 +28,8 @@ def run(num_students: int = 60, seed: int = 7) -> dict:
     times = []
     failures = []
     for sub in subs:
+        if clear_value_cache:
+            values.cache_clear()
         st = time.perf_counter()
         r = diagnose(problem_from_id(sub.problem_id), sub.steps)
         times.append(time.perf_counter() - st)

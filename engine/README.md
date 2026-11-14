@@ -23,7 +23,14 @@ make gen          # from repo root: generates engine/gen/
 make engine       # serves on :50051
 make test         # buf lint + pytest
 make eval         # engine-only evaluation, 60 students, seed 7
+make acceptance   # same fixed class; fail on unmet accuracy, naming or p95 targets
 ```
+
+`make acceptance` writes `engine/acceptance_out/report.json` and returns nonzero
+if a target in the plan's synthetic evaluation table fails. The numerical value
+cache is cleared before each diagnosis; timings still depend on the host and
+other SymPy caches. This is not the gateway's 60-second class-processing gate or
+a measurement of real-student accuracy. Keep generated reports local.
 
 ## Measured (this machine, seed 7, 60 students × 8 problems = 480 submissions)
 

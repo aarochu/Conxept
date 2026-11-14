@@ -42,3 +42,4 @@ data/real/derivations.csv
 engine/real_eval_out/
 # Baseline run outputs (spec 8.5)
 engine/baseline_out/
+engine/acceptance_out/
