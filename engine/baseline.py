@@ -66,6 +66,8 @@ def kind_of(sub: SyntheticSubmission) -> str:
 
 def select_sample(seed: int = SAMPLE_SEED, mix: dict[str, int] = MIX) -> list[SyntheticSubmission]:
     """A fixed, reproducible 100-submission sample from the seed-7 class."""
+    if not mix or set(mix) - set(MIX) or any(type(n) is not int or n < 0 for n in mix.values()) or not sum(mix.values()):
+        raise ValueError("sample mix needs known categories and nonnegative integer counts with a positive total")
     _, subs = generate_class(CLASS_STUDENTS, seed)
     rng = random.Random(seed)
     out: list[SyntheticSubmission] = []
@@ -118,10 +120,14 @@ def ask_model(client, prompt: str, model: str, effort: str, use_fallbacks: bool 
     response = client.beta.messages.create(**kwargs)
     if response.stop_reason == "refusal":
         return ModelAnswer(REFUSED, "", served_by=response.model, refused=True)
+    if response.stop_reason != "end_turn":
+        return ModelAnswer(REFUSED, "", served_by=response.model, error=f"incomplete response: {response.stop_reason}")
     text = next((b.text for b in response.content if b.type == "text"), "")
     try:
         data = json.loads(text)
-        return ModelAnswer(int(data["first_wrong_step"]), str(data.get("misconception", "")), served_by=response.model)
+        if not isinstance(data, dict) or type(data.get("first_wrong_step")) is not int or not 0 <= data["first_wrong_step"] <= 6 or not isinstance(data.get("misconception"), str):
+            raise ValueError("answer must contain an integer step from 0 to 6 and a misconception string")
+        return ModelAnswer(data["first_wrong_step"], data["misconception"], served_by=response.model)
     except (ValueError, KeyError, TypeError) as e:
         return ModelAnswer(REFUSED, "", served_by=response.model, error=f"unparseable answer: {e}")
 
@@ -186,6 +192,8 @@ class Score:
 
 
 def score(sample, steps: list[int]) -> Score:
+    if len(sample) != len(steps):
+        raise ValueError("one answer is required for every sampled submission")
     s = Score(0, 0, 0, 0)
     for sub, got in zip(sample, steps):
         if got == REFUSED:
@@ -201,6 +209,8 @@ def score(sample, steps: list[int]) -> Score:
 
 
 def disagreements(a: list, b: list) -> int:
+    if len(a) != len(b):
+        raise ValueError("runs must contain the same number of answers")
     return sum(x != y for x, y in zip(a, b))
 
 
@@ -212,14 +222,16 @@ def write_csv(path: Path, sample, model_runs, engine_runs) -> None:
         w = csv.writer(f)
         header = ["submission_id", "problem_id", "kind", "true_step", "true_label", "catalog_name"]
         for r in range(len(model_runs)):
-            header += [f"model_step_run{r + 1}", f"model_misconception_run{r + 1}"]
+            header += [f"model_step_run{r + 1}", f"model_misconception_run{r + 1}",
+                       f"model_served_by_run{r + 1}", f"model_refused_run{r + 1}", f"model_error_run{r + 1}"]
         header += ["engine_step", "engine_labels", "model_name_matches_catalog (fill by hand: y/n)"]
         w.writerow(header)
         for i, sub in enumerate(sample):
             name = CATALOG[sub.true_label].name if sub.true_label in CATALOG else ""
             row = [sub.id, sub.problem_id, kind_of(sub), sub.true_step_index, sub.true_label, name]
             for run in model_runs:
-                row += [run[i].first_wrong_step, run[i].misconception or run[i].error]
+                row += [run[i].first_wrong_step, run[i].misconception or run[i].error,
+                        run[i].served_by, run[i].refused, run[i].error]
             e = engine_runs[0][i]
             row += [e.first_wrong_step, ";".join(e.labels), ""]
             w.writerow(row)
@@ -232,7 +244,9 @@ def summary_markdown(sample, model, effort, model_runs, engine_runs) -> str:
         "# Model-only baseline (spec section 8.5)",
         "",
         f"Sample: {len(sample)} submissions from the seed-{SAMPLE_SEED} synthetic class "
-        f"({MIX['correct']} correct, {MIX['catalog']} catalog errors, {MIX['heldout']} held-out).",
+        f"({sum(kind_of(s) == 'correct' for s in sample)} correct, "
+        f"{sum(kind_of(s) == 'catalog' for s in sample)} catalog errors, "
+        f"{sum(kind_of(s) == 'heldout' for s in sample)} held-out).",
         f"Model: `{model}`, effort `{effort}`. Engine: SymPy diagnosis.",
         "",
         "| Measure | Model | Engine |",
@@ -275,6 +289,8 @@ def main(argv=None) -> int:
     ap.add_argument("--no-fallbacks", action="store_true", help="disable server-side refusal fallback")
     ap.add_argument("--dry-run", action="store_true", help="print the sample and one prompt; no API calls")
     args = ap.parse_args(argv)
+    if not args.model.strip():
+        ap.error("--model must not be blank")
     if args.runs < 1:
         ap.error("--runs must be at least 1")
     if args.workers < 1:

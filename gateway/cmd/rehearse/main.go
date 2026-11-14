@@ -45,6 +45,7 @@ func main() {
 	gateway := flag.String("gateway", "http://localhost:8080", "gateway base URL")
 	dbURL := flag.String("db", envOr("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/misconception"), "database to reset")
 	runs := flag.Int("runs", 3, "number of rehearsals")
+	requireAnalyze := flag.Bool("require-analyze", false, "fail unless Analyze returns a brief after calling tools")
 	reset := flag.Bool("reset", false, "delete all data before each run (required for a clean-database rehearsal)")
 	allowRemote := flag.Bool("allow-remote", false, "allow -reset on a database host other than localhost")
 	flag.Parse()
@@ -57,7 +58,7 @@ func main() {
 			fail(err)
 		}
 	}
-	steps := demoSteps()
+	steps := demoSteps(*requireAnalyze)
 	var evals []string
 	for r := 1; r <= *runs; r++ {
 		fmt.Printf("\n== rehearsal %d of %d\n", r, *runs)
@@ -97,7 +98,7 @@ func main() {
 	fmt.Printf("\nAll %d rehearsals passed with identical evaluation: %s\n", *runs, evals[0])
 }
 
-func demoSteps() []step {
+func demoSteps(requireAnalyze bool) []step {
 	return []step{
 		{"class list", func(ctx context.Context, s *state) (string, error) {
 			res, err := s.c.ListClasses(ctx, connect.NewRequest(&v1.ListClassesRequest{}))
@@ -227,6 +228,7 @@ func demoSteps() []step {
 			if err != nil {
 				return "", err
 			}
+			defer stream.Close()
 			calls := 0
 			for stream.Receive() {
 				ev := stream.Msg().GetEvent()
@@ -234,6 +236,9 @@ func demoSteps() []step {
 				case ev.GetToolCall() != nil:
 					calls++
 				case ev.GetBrief() != nil:
+					if requireAnalyze && calls == 0 {
+						return "", errors.New("Analyze returned a brief without tool calls")
+					}
 					return fmt.Sprintf("brief after %d tool calls", calls), nil
 				case ev.GetError() != "":
 					return "", errors.New(ev.GetError())
@@ -247,7 +252,7 @@ func demoSteps() []step {
 				return "", err
 			}
 			return "", errors.New("stream ended without a brief")
-		}, true},
+		}, !requireAnalyze},
 		{"dashboard page served", func(ctx context.Context, s *state) (string, error) {
 			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, s.base+"/class/"+s.classID, nil)
 			res, err := http.DefaultClient.Do(req)

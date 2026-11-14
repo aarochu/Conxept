@@ -42,6 +42,9 @@ func spaFileServer(dir string) http.Handler {
 		clean := filepath.Clean("/" + r.URL.Path)
 		full := filepath.Join(dir, filepath.FromSlash(clean))
 		if info, err := os.Stat(full); err == nil && !info.IsDir() {
+			if clean == "/index.html" {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			files.ServeHTTP(w, r)
 			return
 		}
@@ -54,6 +57,7 @@ func spaFileServer(dir string) http.Handler {
 			http.Error(w, "web app not built (expected "+index+")", http.StatusNotFound)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, index)
 	})
 }

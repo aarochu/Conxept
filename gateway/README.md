@@ -45,3 +45,19 @@ The rehearsal also enforces the plan's 60-second seed-and-process target for
 480 submissions. The timer starts immediately before seeding and ends when the
 processing stream completes; it excludes navigation, practice generation, and
 Analyze. A slower run fails even if its evaluation counts are repeatable.
+## Live Analyze acceptance gate
+
+The normal rehearsal may skip Analyze when no model key is configured. To check
+the plan's H8–H12 live-brief gate, start the engine with a valid API key and run:
+
+```bash
+cd gateway
+go run ./cmd/rehearse -runs 1 -require-analyze
+```
+
+This inserts a synthetic class without resetting the database. It fails if
+Analyze errors, ends without a brief, or returns a brief without calling tools.
+The engine still performs the number check. A successful scripted test only
+validates the harness; do not mark the live-model plan item complete until this
+command passes against a real model and the brief is inspected. For a disposable
+local database, add `-reset -runs 3` to combine it with the clean-database gate.

@@ -81,6 +81,29 @@ def test_residual_labels(steps, label):
     assert r.misconception_ids == [] and r.residual_label == label
 
 
+@pytest.mark.parametrize(
+    "pid,step,label",
+    [
+        ("f3-a1", "2*pi*int(exp(-t)*exp(-j*w*t),t,0,inf)", "residual:factor_2pi"),
+        ("f3-a2", "2*int(exp(-2*t)*exp(-j*w*t),t,0,inf)", "residual:factor_2"),
+        ("f2-a1-b2", "-u(t)*int(exp(-tau)*exp(-2*(t-tau)),tau,0,t)", "residual:sign_flip"),
+    ],
+)
+def test_residual_labels_on_integral_steps(pid, step, label):
+    r = diagnose(problem_from_id(pid), [step])
+    assert r.status == STATUS_DIVERGED and r.step_index == 1
+    assert r.misconception_ids == [] and r.residual_label == label
+
+
+def test_scaled_values_match_direct_sampling():
+    from diagnose import _FACTORS, _close, scaled_values, values
+    from parse_step import parse_step
+
+    e = parse_step("int(exp(-t)*exp(-j*w*t),t,0,inf)")
+    for _, k in _FACTORS:
+        assert _close(scaled_values(k, e), values(k * e))
+
+
 def test_parse_error_names_step():
     r = diagnose(problem_from_id("f3-a1"), ["int(exp(-t)*exp(-j*w*t),t,0,inf)", "__import__('os')"])
     assert r.status == STATUS_PARSE_ERROR and r.parse_error_step == 2

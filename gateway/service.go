@@ -40,6 +40,8 @@ type Gateway struct {
 	catalog   map[string]*v1.Misconception
 }
 
+func instructionTooLong(s string) bool { return len([]rune(s)) > maxInstructionLen }
+
 func invalid(format string, args ...any) error {
 	return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(format, args...))
 }
@@ -62,6 +64,9 @@ func dbErr(err error, what string) error {
 }
 
 func checkSteps(steps []*v1.Step) error {
+	if len(steps) == 0 {
+		return invalid("at least one step is required")
+	}
 	if len(steps) > maxSteps {
 		return invalid("at most %d steps", maxSteps)
 	}
@@ -157,7 +162,7 @@ func (g *Gateway) SeedSyntheticClass(ctx context.Context, req *connect.Request[v
 	if heldout == 0 {
 		heldout = defaultHeldoutShare
 	}
-	if errRate < 0 || errRate > 1 || heldout < 0 || heldout > 1 {
+	if !(errRate >= 0 && errRate <= 1 && heldout >= 0 && heldout <= 1) {
 		return nil, invalid("error_rate and heldout_share must be 0 to 1")
 	}
 	name := strings.TrimSpace(m.Name)
@@ -327,7 +332,7 @@ func (g *Gateway) GenerateRemediation(ctx context.Context, req *connect.Request[
 }
 
 func (g *Gateway) AnalyzeClass(ctx context.Context, req *connect.Request[v1.AnalyzeClassRequest], stream *connect.ServerStream[v1.AnalyzeClassResponse]) error {
-	if len(req.Msg.Instruction) > maxInstructionLen {
+	if instructionTooLong(req.Msg.Instruction) {
 		return invalid("instruction is longer than %d characters", maxInstructionLen)
 	}
 	if err := g.store.ClassExists(ctx, req.Msg.ClassId); err != nil {

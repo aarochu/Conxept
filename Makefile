@@ -40,9 +40,17 @@ test-gateway: ## gateway tests against a running engine and Postgres
 eval: ## engine-only evaluation on a seeded synthetic class
 	cd engine && $(PY) evaluate.py 60 7
 
+.PHONY: acceptance
+acceptance: ## fail on unmet spec 8.2 synthetic accuracy and latency targets
+	cd engine && $(PY) acceptance.py --out acceptance_out/report.json
+
 rehearse: ## demo script 3 times from a clean local database (deletes local data; needs engine + gateway running)
 	cd gateway && go run ./cmd/rehearse -reset -runs 3
 SPLIT ?= test
+.PHONY: worksheet
+worksheet: ## generate the anonymous eight-problem real-data collection sheet
+	cd engine && $(PY) worksheet.py
+
 real-eval: ## engine on hand-labelled real derivations, spec 8.4 (data/real/derivations.csv)
 	cd engine && $(PY) real_eval.py ../data/real/derivations.csv --split $(SPLIT)
 baseline: ## model-only baseline, spec 8.5 (calls the Claude API ~200 times; costs money)

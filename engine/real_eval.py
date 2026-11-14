@@ -82,7 +82,12 @@ def split_of(row_id: str) -> str:
 def read_rows(path: Path) -> tuple[list[Row], list[str]]:
     rows, errors, seen = [], [], set()
     with path.open(newline="", encoding="utf-8-sig") as f:
-        for n, rec in enumerate(csv.DictReader(f), start=2):  # line 1 is the header
+        reader = csv.DictReader(f)
+        headers = reader.fieldnames or []
+        required = {"id", "problem_id", "step1", "true_step"}
+        if not required.issubset(headers) or len(headers) != len(set(headers)):
+            return [], ["CSV needs unique headers including id, problem_id, step1, true_step"]
+        for n, rec in enumerate(reader, start=2):  # line 1 is the header
             rid = (rec.get("id") or "").strip()
             if not rid:
                 errors.append(f"line {n}: missing id")
@@ -91,7 +96,7 @@ def read_rows(path: Path) -> tuple[list[Row], list[str]]:
                 errors.append(f"line {n}: duplicate id {rid}")
                 continue
             seen.add(rid)
-            if any(v for v in rec.get(None) or []):  # DictReader puts surplus columns under None
+            if None in rec:  # DictReader puts surplus columns under None
                 errors.append(f"line {n} ({rid}): too many columns; quote steps that contain commas, "
                               'e.g. "int(f, t, 0, inf)"')
                 continue
@@ -139,15 +144,21 @@ def evaluate_row(row: Row) -> Outcome:
         problem = problem_from_id(row.problem_id)
     except KeyError:
         return Outcome(row, input_error=f"unknown problem id {row.problem_id!r}")
+    if len(row.steps) > problem.family.n_steps:
+        return Outcome(row, input_error=f"problem accepts at most {problem.family.n_steps} steps")
     if not row.steps:
         return Outcome(row, input_error="no steps")
     if any(not s for s in row.steps):
         return Outcome(row, input_error="empty step before a filled one")
     if not 0 <= row.true_step <= len(row.steps):
         return Outcome(row, input_error=f"true_step {row.true_step} is outside 0..{len(row.steps)}")
+    if row.true_step == 0 and row.true_label:
+        return Outcome(row, input_error="correct derivations must have an empty true_label")
     if row.true_label and row.true_label != "other" and row.true_label not in CATALOG:
         # A typo would otherwise count as a catalog label that never matches.
         return Outcome(row, input_error=f"true_label {row.true_label!r} is not a catalog id or 'other'")
+    if row.true_label in CATALOG and (problem.family.key, row.true_step) not in CATALOG[row.true_label].places:
+        return Outcome(row, input_error="true_label does not apply to this family and step")
     r = _diagnose_with_timeout(problem, row.steps)
     if r is None:
         return Outcome(row, status=STATUS_PARSE_ERROR, parse_error=f"timed out after {TIMEOUT_S:.0f} s")
@@ -243,16 +254,26 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=Path("real_eval_out"))
     args = ap.parse_args(argv)
 
-    rows, errors = read_rows(args.csv)
+    try:
+        rows, errors = read_rows(args.csv)
+    except (OSError, UnicodeError, csv.Error) as exc:
+        ap.error(f"cannot read input CSV: {exc}")
     for e in errors:
         print(f"skipped: {e}", file=sys.stderr)
     chosen = [r for r in rows if args.split == "all" or split_of(r.id) == args.split]
+    if not chosen:
+        print(f"no rows in selected split: {args.split}", file=sys.stderr)
+        return 2
     outcomes = [evaluate_row(r) for r in chosen]
     for o in outcomes:
         if o.input_error:
             print(f"skipped {o.row.id}: {o.input_error}", file=sys.stderr)
         elif o.status == STATUS_PARSE_ERROR:
             print(f"parse error {o.row.id} step {o.step}: {o.parse_error}", file=sys.stderr)
+
+    if not any(not o.input_error and o.status in (STATUS_VALID, STATUS_DIVERGED) for o in outcomes):
+        print("no evaluable rows in selected split", file=sys.stderr)
+        return 2
 
     args.out.mkdir(parents=True, exist_ok=True)
     text = report(summarize(outcomes), args.split, str(args.csv))
