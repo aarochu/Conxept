@@ -9,12 +9,12 @@ import { SubmissionPage } from './pages/submission';
 import { TryPage } from './pages/try';
 
 export const routes: Routes = [
-  { path: '', component: ClassList, title: 'Classes · Conxept' },
-  { path: 'welcome', component: LandingPage, title: 'Conxept' },
-  { path: 'try', component: TryPage, title: 'Try a derivation · Conxept' },
-  { path: 'class/:id', component: ClassDashboard, title: 'Dashboard · Conxept' },
-  { path: 'class/:id/evaluation', component: EvaluationPage, title: 'Evaluation · Conxept' },
-  { path: 'class/:id/cluster/:key', component: ClusterPage, title: 'Misconception · Conxept' },
-  { path: 'class/:id/submission/:sid', component: SubmissionPage, title: 'Submission · Conxept' },
+  { path: '', component: ClassList, title: 'Classes · ConXept' },
+  { path: 'welcome', component: LandingPage, title: 'ConXept' },
+  { path: 'try', component: TryPage, title: 'Try a derivation · ConXept' },
+  { path: 'class/:id', component: ClassDashboard, title: 'Dashboard · ConXept' },
+  { path: 'class/:id/evaluation', component: EvaluationPage, title: 'Evaluation · ConXept' },
+  { path: 'class/:id/cluster/:key', component: ClusterPage, title: 'Misconception · ConXept' },
+  { path: 'class/:id/submission/:sid', component: SubmissionPage, title: 'Submission · ConXept' },
   { path: '**', redirectTo: '' },
 ];

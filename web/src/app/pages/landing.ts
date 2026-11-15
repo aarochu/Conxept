@@ -31,7 +31,7 @@ type GroupKey = (typeof GROUPS)[number]['key'];
         <div class="copy">
           <h1 class="reveal">Find the step where each derivation first goes wrong.</h1>
           <p class="lede reveal">
-            Conxept checks every student step against their own previous step with SymPy, groups the
+            ConXept checks every student step against their own previous step with SymPy, groups the
             first mistakes into named misconceptions across the class, and writes practice problems
             with verified answer keys.
           </p>
