@@ -27,10 +27,15 @@ def test_parse_number_rejects_prose():
     assert wolfram.parse_number("Wolfram|Alpha did not understand your input") is None
 
 
-def test_fourier_queries_use_the_course_convention():
+def test_fourier_queries_use_the_course_kernel():
     qs = wolfram.queries("f3", {"a": 2})
-    assert all("FourierParameters -> {1, -1}" in q for q, _, _ in qs)
+    assert all("Exp[-I*" in q and "{t, 0, Infinity}" in q for q, _, _ in qs)
     assert {part for _, part, _ in qs} == {"re", "im"}
+
+
+def test_queries_never_use_substitution():
+    params = {"f1": {"p": 1, "q": 2, "n": 0}, "f2": {"a": 1, "b": 2}, "f3": {"a": 2}, "f4": {"a": 2, "T": 2}}
+    assert all("/." not in q for fam, c in params.items() for q, _, _ in wolfram.queries(fam, c))
 
 
 # f1-p1-q2-n0: F(s) = s/((s+1)(s+2)), f(t) = 2e^{-2t} - e^{-t}, computed by hand.
@@ -40,7 +45,7 @@ TRUE_F1 = {0.5: 2 * math.exp(-1.0) - math.exp(-0.5), 1.3: 2 * math.exp(-2.6) - m
 def fake_wolfram(answers):
     def evaluate(expr):
         for point, value in answers.items():
-            if f"t -> {point}]" in expr:
+            if f", s, {point}]]" in expr:
                 return value
         return None
     return evaluate

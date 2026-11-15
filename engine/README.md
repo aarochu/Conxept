@@ -40,7 +40,8 @@ number check, so a brief with an invented count is replaced by an error rather t
 Set `WOLFRAM_APP_ID` (a Wolfram|Alpha developer App ID; developer.wolframalpha.com) to add a third
 check of practice-problem answer keys. At start-up the engine sends one known inverse Laplace
 transform; if Wolfram answers correctly, each generated problem's key is compared with Wolfram at two
-sample points (Fourier queries use `FourierParameters -> {1, -1}`), and `wolfram` is added to its
+sample points (inverse Laplace for f1; the defining integral for f2, f3 and f4, with the course's
+exp(-jωt) Fourier kernel), and `wolfram` is added to its
 verification routes when they agree. A disagreement is logged and the problem stays, verified by its
 two SymPy/mpmath routes. Unset, failed probe, timeouts or unparseable replies all leave the engine
 exactly as without Wolfram. Each problem costs two to four Wolfram queries.
