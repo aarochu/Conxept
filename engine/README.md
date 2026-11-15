@@ -81,4 +81,4 @@ Catalog results are self-consistency, not accuracy on real students: the synthet
 - Briefs: §6.3 says "save to briefs", but §2 says only the gateway writes to the database. The engine streams `BriefEvent` with a new UUID; **the gateway must insert it into `briefs`**.
 - `GenerateClass` uses `error_rate` and `heldout_share` exactly as sent; the gateway applies the defaults (0.6, 0.25) per §4.
 - The parser also rejects nested powers like `(t^2)^3` (to stop huge integer powers); everything else follows the §3 rules exactly.
-- Wolfram cross-check is not built (first item on the cut list).
+- Wolfram cross-check is optional: it adds a third verification route when configured and available; otherwise practice answer keys keep their two existing checks (see above).
