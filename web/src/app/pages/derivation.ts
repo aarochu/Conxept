@@ -51,11 +51,11 @@ interface StepView {
             <div class="compare">
               <div>
                 <div class="muted label">Student wrote</div>
-                <div class="math" [latex]="d.studentLatex"></div>
+                <div class="math" [latex]="d.studentLatex" [fullSize]="true"></div>
               </div>
               <div>
                 <div class="muted label">Expected from their previous step</div>
-                <div class="math" [latex]="d.expectedLatex"></div>
+                <div class="math" [latex]="d.expectedLatex" [fullSize]="true"></div>
               </div>
             </div>
             <div class="labels">
