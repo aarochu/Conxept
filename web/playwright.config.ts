@@ -7,6 +7,7 @@ if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(baseURL).hostname)) {
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: 'demo.spec.ts',
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env['CI'],

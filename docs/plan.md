@@ -2,6 +2,10 @@
 
 Source: [spec.md](spec.md) §10. Deadline: **Sunday Nov 15, 8:00 AM** (Devpost). Target code-complete: **Saturday 11 PM**. Last 3 hours are demo, submission and sleep only.
 
+Demo timing update: use the compressed, sub-two-minute recording rather than the
+original three-minute script. Public deadline displays conflict; keep the earlier
+8:00 AM target until organizers confirm. See [event-checks.md](event-checks.md).
+
 ## Lanes
 
 Each lane is one engineer or agent session on its own branch (`lane/engine`, `lane/gateway`, `lane/web`).
@@ -90,7 +94,9 @@ Each lane is one engineer or agent session on its own branch (`lane/engine`, `la
 - [ ] Baseline (§8.5) run and recorded
 - [ ] Real classmate derivations collected, half held aside
 - [x] Devpost draft from measured numbers only (`docs/devpost.md`; not submitted)
-- [x] Automated demo rehearsed 3× from clean DB (Analyze skipped; visual walkthrough and recording still pending)
+- [x] Automated demo rehearsed 3× from clean DB (Analyze skipped; live-model gate still pending)
+- [x] Local browser walkthrough and 117-second captioned draft recorded with the no-key fallback (`docs/browser-qa.md`)
+- [ ] Owner reviews and uploads the final video and submission links
 
 ## Cut list (cut in this order when behind)
 
