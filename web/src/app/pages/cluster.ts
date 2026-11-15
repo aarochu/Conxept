@@ -79,8 +79,8 @@ interface Example {
             <section class="card">
               <h2>Practice problems</h2>
               <p class="muted legend">
-                Each answer key was checked by two independent routes. Each problem separates this
-                misconception from the correct answer.
+                Each answer key was checked by at least two independent routes. Each problem
+                separates this misconception from the correct answer.
               </p>
               <div class="stack">
                 @for (p of problems(); track p.problem?.id) {
@@ -92,11 +92,11 @@ interface Example {
                     <div class="math" [latex]="p.problem?.givenLatex ?? ''" [display]="true"></div>
                     <div class="kv">
                       <span class="muted">Answer key</span>
-                      <span [latex]="p.answerKeyLatex"></span>
+                      <span [latex]="p.answerKeyLatex" [fullSize]="true"></span>
                     </div>
                     <div class="kv">
                       <span class="muted">This misconception gives</span>
-                      <span [latex]="p.whyItDiscriminates"></span>
+                      <span [latex]="p.whyItDiscriminates" [fullSize]="true"></span>
                     </div>
                     <div class="routes">
                       @if (p.verified) {
