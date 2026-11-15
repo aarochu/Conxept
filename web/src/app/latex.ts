@@ -13,7 +13,7 @@ export class Latex {
       katex.render(this.latex() || '', this.el.nativeElement, {
         throwOnError: false,
         displayMode: this.display(),
-        output: 'html',
+        output: 'htmlAndMathml',
       });
     });
   }
