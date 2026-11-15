@@ -57,5 +57,9 @@ worksheet: ## generate the anonymous eight-problem real-data collection sheet
 
 real-eval: ## engine on hand-labelled real derivations, spec 8.4 (data/real/derivations.csv)
 	cd engine && $(PY) real_eval.py ../data/real/derivations.csv --split $(SPLIT)
-baseline: ## model-only baseline, spec 8.5 (calls the Claude API ~200 times; costs money)
+baseline: ## model-only baseline, spec 8.5 (~200 model calls; free with OPENROUTER_API_KEY, paid with Anthropic)
 	cd engine && $(PY) baseline.py --out baseline_out
+
+.PHONY: free-models
+free-models: ## list OpenRouter models that are free and support tool calling (no key needed)
+	cd engine && $(PY) free_models.py

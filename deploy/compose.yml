@@ -6,7 +6,9 @@ services:
     environment:
       DATABASE_URL: ${ENGINE_DATABASE_URL:?Set the read-only engine connection URL}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      AGENT_MODEL: ${AGENT_MODEL:-anthropic:claude-sonnet-5-5}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Blank picks a default for whichever key is set (engine/llm.py).
+      AGENT_MODEL: ${AGENT_MODEL:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50051), 1)"]
       interval: 5s

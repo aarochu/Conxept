@@ -95,7 +95,7 @@ Or each piece locally:
 
 Deployment is image-based: pull the two images and run them next to any Postgres 16 (Tiger Cloud for the demo).
 The gateway needs `DATABASE_URL` and `ENGINE_ADDR`; the engine needs a read-only `DATABASE_URL` and, for
-Analyze, `ANTHROPIC_API_KEY`.
+Analyze, `OPENROUTER_API_KEY` (free `:free` models work) or `ANTHROPIC_API_KEY`.
 
 ## Docs
 

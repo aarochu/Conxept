@@ -248,7 +248,7 @@ func demoSteps(requireAnalyze bool) []step {
 			if err := stream.Err(); err != nil {
 				var ce *connect.Error
 				if errors.As(err, &ce) && ce.Code() == connect.CodeFailedPrecondition {
-					return "", errors.New("no ANTHROPIC_API_KEY on the engine; skip this row on stage")
+					return "", errors.New("no OPENROUTER_API_KEY or ANTHROPIC_API_KEY on the engine; skip this row on stage")
 				}
 				return "", err
 			}

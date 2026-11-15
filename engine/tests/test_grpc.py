@@ -80,11 +80,13 @@ async def test_generate_rejects_bad_count(stub):
 
 async def test_analyze_without_key_is_failed_precondition(stub, monkeypatch):
     _, agent = stub
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    for var in ("ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "AGENT_MODEL"):
+        monkeypatch.delenv(var, raising=False)
     with pytest.raises(grpc.aio.AioRpcError) as e:
         async for _ in agent.Analyze(pb.AnalyzeRequest(class_id="x")):
             pass
     assert e.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+    assert "OPENROUTER_API_KEY" in e.value.details() and "ANTHROPIC_API_KEY" in e.value.details()
 
 
 async def test_slow_step_times_out_and_frees_worker(stub, monkeypatch):

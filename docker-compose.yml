@@ -27,7 +27,9 @@ services:
       # Read-only role (spec section 5): the engine never writes.
       DATABASE_URL: postgres://engine_ro:engine_ro@postgres:5432/misconception
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      AGENT_MODEL: ${AGENT_MODEL:-anthropic:claude-sonnet-5-5}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Blank picks a default for whichever key is set (engine/llm.py).
+      AGENT_MODEL: ${AGENT_MODEL:-}
     depends_on:
       postgres:
         condition: service_healthy

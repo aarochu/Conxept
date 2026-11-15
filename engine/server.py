@@ -279,8 +279,13 @@ class EngineService(rpc.EngineServiceServicer):
 
 class InstructorAgentService(rpc.InstructorAgentServiceServicer):
     async def Analyze(self, request, context):
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, "ANTHROPIC_API_KEY is not set")
+        from llm import MISSING_KEY_MESSAGE, missing_key, resolve_model
+
+        model = resolve_model()
+        key = missing_key(model)
+        if key:
+            message = MISSING_KEY_MESSAGE if not os.environ.get("AGENT_MODEL") else f"{model} needs {key}"
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, message)
         from agent import analyze_events
 
         async for event in analyze_events(request.class_id, request.instruction):
