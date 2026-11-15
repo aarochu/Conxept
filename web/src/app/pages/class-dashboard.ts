@@ -196,10 +196,9 @@ interface HeatRow {
     .cell .of {
       font-size: 0.75rem;
       margin-left: 3px;
-      opacity: 0.75;
     }
     .cell.hot {
-      color: #fff;
+      color: var(--text);
     }
     .clusters {
       list-style: none;
@@ -349,7 +348,7 @@ export class ClassDashboard implements OnInit {
 
   /** One sequential ramp; the number is always shown, never colour alone. */
   shade(c: HeatmapCell) {
-    const pct = Math.round(8 + 80 * Math.min(1, this.ratio(c) / 0.6));
+    const pct = Math.round(8 + 42 * Math.min(1, this.ratio(c) / 0.6));
     return `color-mix(in oklab, var(--heat) ${c.failed === 0 ? 0 : pct}%, var(--surface-2))`;
   }
 
