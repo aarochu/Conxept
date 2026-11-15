@@ -12,6 +12,7 @@ Correctness is decided by sampling + `mpmath.quad`, never by the language model.
 | `remediation.py` | Practice-problem generator (§7.3): two verification routes, never returns unverified |
 | `agent.py` | Deep Agent for Analyze (§6.3): four tools, fixed system prompt, number check |
 | `llm.py` | Picks the model for Analyze and the baseline: `openrouter:<id>` or `anthropic:<id>`, and the key each needs |
+| `wolfram.py` | Optional Wolfram|Alpha cross-check of practice answer keys (third route, never required) |
 | `free_models.py` | Lists OpenRouter models that are free and support tool calling (`make free-models`) |
 | `server.py` | gRPC server: 4-worker process pool, 5 s per-diagnosis timeout |
 | `evaluate.py` | Engine-only evaluation on a synthetic class (§8.2 metrics) |
@@ -33,6 +34,16 @@ With only `OPENROUTER_API_KEY` set, both default to a free model. With `ANTHROPI
 they default to Claude. Free models are rate-limited: the baseline retries on HTTP 429 and sends
 two requests at a time, and its ~200 calls can exceed a free daily allowance. Analyze keeps the
 number check, so a brief with an invented count is replaced by an error rather than shown.
+
+## Optional Wolfram cross-check
+
+Set `WOLFRAM_APP_ID` (a Wolfram|Alpha developer App ID; developer.wolframalpha.com) to add a third
+check of practice-problem answer keys. At start-up the engine sends one known inverse Laplace
+transform; if Wolfram answers correctly, each generated problem's key is compared with Wolfram at two
+sample points (Fourier queries use `FourierParameters -> {1, -1}`), and `wolfram` is added to its
+verification routes when they agree. A disagreement is logged and the problem stays, verified by its
+two SymPy/mpmath routes. Unset, failed probe, timeouts or unparseable replies all leave the engine
+exactly as without Wolfram. Each problem costs two to four Wolfram queries.
 
 ## Run
 

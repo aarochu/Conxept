@@ -30,6 +30,8 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       # Blank picks a default for whichever key is set (engine/llm.py).
       AGENT_MODEL: ${AGENT_MODEL:-}
+      # Optional third check of practice-problem answer keys; unset skips it.
+      WOLFRAM_APP_ID: ${WOLFRAM_APP_ID:-}
     depends_on:
       postgres:
         condition: service_healthy
