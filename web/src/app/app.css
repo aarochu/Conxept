@@ -44,3 +44,12 @@ nav a.active {
   color: var(--text);
   background: var(--surface-2);
 }
+
+.snapshot-bar {
+  background: var(--warn-soft);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 8px 24px;
+  text-align: center;
+}

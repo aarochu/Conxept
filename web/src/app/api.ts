@@ -4,13 +4,20 @@ import { createConnectTransport } from '@connectrpc/connect-web';
 
 import { Family, Misconception, Problem } from '../gen/misconception/v1/common_pb';
 import { GatewayService } from '../gen/misconception/v1/gateway_pb';
+import { snapshot, snapshotTransport } from './snapshot';
 
-/** The one Connect client for the gateway (same origin; `ng serve` proxies to :8080). */
+/**
+ * The one Connect client for the gateway (same origin; `ng serve` proxies to :8080). A deployment
+ * that ships `snapshot.json` answers every call from it instead (see snapshot.ts).
+ */
 @Injectable({ providedIn: 'root' })
 export class Api {
+  readonly snapshot = snapshot();
   readonly client = createClient(
     GatewayService,
-    createConnectTransport({ baseUrl: window.location.origin }),
+    this.snapshot
+      ? snapshotTransport(this.snapshot)
+      : createConnectTransport({ baseUrl: window.location.origin }),
   );
 
   private problemsP?: Promise<Problem[]>;
