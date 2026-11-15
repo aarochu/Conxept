@@ -16,3 +16,12 @@ gateway/queries.sql
 web/src/gen
 web/dist
 web/.angular
+
+# Local evaluation data and browser evidence are not image inputs.
+data/real/derivations.csv
+engine/baseline_out
+engine/real_eval_out
+engine/acceptance_out
+web/test-results
+web/playwright-report
+web/demo-results
