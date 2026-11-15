@@ -17,8 +17,8 @@ set of real derivations, which is the only data that can test the catalog agains
    `true_label` to a catalog id, or `other` for an error the catalog doesn't describe.
 4. Run `make real-check` before scoring. It checks CSV structure, problem ids, step counts,
    and hand-label metadata across all rows without calculating diagnoses or writing scores.
-   It returns failure for invalid input. It does not check mathematical correctness or Step DSL
-   expression syntax; use the dev split while correcting expression transcription.
+   It also parses every step with the Step DSL parser, so transcription typos are caught before any
+   row is scored. It returns failure for invalid input. It does not check mathematical correctness.
 5. Run `make real-eval` (the `test` half) and `make real-eval SPLIT=dev` (the half you may look at
    while fixing typing mistakes).
 

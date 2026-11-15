@@ -134,10 +134,11 @@ func demoSteps(requireAnalyze bool) []step {
 			if last == nil || last.Done != last.Total || last.Total != 480 {
 				return "", fmt.Errorf("progress ended at %+v", last)
 			}
-			if err := checkClassDuration(time.Since(s.classStarted)); err != nil {
+			elapsed := time.Since(s.classStarted)
+			if err := checkClassDuration(elapsed); err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("480 / 480; seed + process %s", time.Since(s.classStarted).Round(time.Millisecond)), nil
+			return fmt.Sprintf("480 / 480; seed + process %s", elapsed.Round(time.Millisecond)), nil
 		}, false},
 		{"heatmap", func(ctx context.Context, s *state) (string, error) {
 			res, err := s.c.GetHeatmap(ctx, connect.NewRequest(&v1.GetHeatmapRequest{ClassId: s.classID}))

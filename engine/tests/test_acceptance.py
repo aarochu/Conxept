@@ -39,3 +39,9 @@ def test_cli_records_failed_run(monkeypatch, tmp_path):
     output = tmp_path / "report.json"
     assert acceptance.main(["--out", str(output)]) == 1
     assert json.loads(output.read_text())["passed"] is False
+
+
+def test_expected_total_follows_student_count():
+    result = passing_result()
+    assert acceptance.assess(result, students=60) == []
+    assert acceptance.assess(result, students=10)
