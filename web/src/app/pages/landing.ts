@@ -29,7 +29,6 @@ type GroupKey = (typeof GROUPS)[number]['key'];
     <div class="landing">
       <section class="hero">
         <div class="copy">
-          <p class="eyebrow reveal">Linear Systems and Signals</p>
           <h1 class="reveal">Find the step where each derivation first goes wrong.</h1>
           <p class="lede reveal">
             Conxept checks every student step against their own previous step with SymPy, groups the
@@ -58,7 +57,8 @@ type GroupKey = (typeof GROUPS)[number]['key'];
           <h2 class="reveal">Checked by mathematics, not a language model</h2>
           <p class="reveal">
             A step is valid when it equals the correct move applied to the student's own previous
-            step. Later steps aren't blamed for an earlier mistake.
+            step. Later steps aren't blamed for an earlier mistake. Example from linear systems: an
+            inverse Laplace transform by partial fractions.
           </p>
         </div>
         <ol class="derivation">
@@ -88,7 +88,8 @@ type GroupKey = (typeof GROUPS)[number]['key'];
         <div class="block-head">
           <h2 class="reveal">A whole class at once</h2>
           <p class="reveal">
-            Each cell is one derivation from the seeded demo class. Hover a group to find it.
+            Each cell is one derivation from a seeded demo class working linear-systems problems.
+            Hover a group to find it.
           </p>
         </div>
         <div class="meter">
@@ -175,14 +176,6 @@ type GroupKey = (typeof GROUPS)[number]['key'];
       gap: 48px;
       padding-top: 48px;
       padding-bottom: 48px;
-    }
-    .eyebrow {
-      color: var(--l-accent);
-      font-size: 0.8rem;
-      font-weight: 650;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin: 0 0 14px;
     }
     h1 {
       font-size: clamp(2.1rem, 4.6vw, 3.4rem);
