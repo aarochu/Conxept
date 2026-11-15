@@ -15,6 +15,12 @@
     </nav>
   </div>
 </header>
+@if (snapshot) {
+  <div class="snapshot-bar" role="status">
+    Read-only snapshot of a processed demo class (synthetic, seed 7). Seeding, processing and live
+    checking need the engine; the demo video shows them running.
+  </div>
+}
 <main>
   <router-outlet />
 </main>
