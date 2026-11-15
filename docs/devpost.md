@@ -1,6 +1,6 @@
-# Conxept — submission draft
+# ConXept — submission draft
 
-Draft only. Add the team, demo video, and project URL before submission. Confirm event rules and prize eligibility in the current Hacker Onsite Handbook. Do not describe the hosted deployment or live model features as demonstrated until their checks pass.
+Draft only. Add the team, demo video, and project URL before submission. The public listing caps the video at two minutes ([event checks](event-checks.md)). Confirm event rules and prize eligibility in the current Hacker Onsite Handbook. Do not describe the hosted deployment or live model features as demonstrated until their checks pass, and fill in the bracketed items from runs you have actually done.
 
 ## Tagline
 
@@ -8,19 +8,23 @@ Find the first wrong step. See where the class is stuck. Generate checked practi
 
 ## Inspiration
 
-An instructor reviewing 60 students across eight signals-and-systems problems faces 480 derivations. A final answer alone does not explain where a student went off track, or whether many students share the same misconception. We wanted to turn those individual steps into a useful view of the class.
+An instructor reviewing 60 students across eight problems faces 480 derivations. A final answer alone does not explain where a student went off track, or whether many students share the same misconception. We wanted to turn those individual steps into a useful view of the class.
 
 ## What it does
 
 Conxept checks a typed derivation step by step, reports its first divergence, and groups matching mistakes into a hand-written catalog of misconceptions. A heatmap shows where the class struggles. The instructor can inspect example submissions and generate practice problems whose answer keys pass two verification routes. Errors outside the catalog remain residual errors or Other; the checker does not invent a misconception name.
 
-The prototype covers four families: inverse Laplace by partial fractions, causal convolution, Fourier transforms under a fixed convention, and Laplace time shifts. It accepts a constrained mathematical notation rather than handwriting or natural-language proofs.
+The approach applies to any course built on step-by-step symbolic derivations. The prototype implements one: Linear Systems and Signals, with four families (inverse Laplace by partial fractions, causal convolution, Fourier transforms under a fixed convention, and Laplace time shifts) and a 14-entry misconception catalog. Another course needs its own problem families and catalog. Input is a constrained mathematical notation rather than handwriting or natural-language proofs.
+
+A short animated landing page explains the idea with a worked example and a 480-cell view of the demo class before the instructor opens the tool.
 
 ## How we built it
 
 Angular and TypeScript provide the instructor interface. A Go gateway serves the application and uses Protobuf/gRPC to call the Python engine. SymPy constructs expressions, and deterministic numerical sampling with mpmath quadrature checks equivalence. PostgreSQL stores submissions, diagnoses, and evaluation results.
 
-Correctness does not depend on a language model or network access. The optional Deep Agents workflow uses tools to draft an instructor brief, with a check that integers in the brief appeared in tool output. This guard does not prove the prose correct. The live model path has not yet been validated; scripted-model tests cover the wiring.
+Correctness does not depend on a language model or network access. The optional Deep Agents workflow uses tools to draft an instructor brief, with a check that integers in the brief appeared in tool output. This guard does not prove the prose correct. The brief runs on any OpenRouter model, including free ones, or on Claude, chosen with one environment variable, so the whole project can run at no cost.
+
+[Before submitting, replace this paragraph with the result of a live run: the model used, and whether the brief passed the number check. Until then: the live model path has not been validated; scripted-model tests cover the wiring.]
 
 ## What we measured
 
@@ -33,9 +37,9 @@ On the fixed seed-7 synthetic class of 60 students and eight problems:
 | Catalog label matched ground truth | 235 / 235 |
 | Held-out synthetic errors detected | 78 / 78 |
 
-Three automated rehearsals from a clean local database reproduced these counts. Each exercised seeding, processing, heatmap, clusters, an example submission, three verified practice problems, evaluation, and serving the dashboard page. Analyze was skipped because no API key was configured. The harness checks APIs and page delivery; it does not replace a visual walkthrough or recorded demo.
+Three automated rehearsals from a clean local database reproduced these counts, and CI repeats three clean-database rehearsals plus a browser regression test on every change to main. Each exercised seeding, processing, heatmap, clusters, an example submission, three verified practice problems, evaluation, and serving the dashboard page. Analyze was skipped because no API key was configured. The harness checks APIs and page delivery; it does not replace a visual walkthrough or recorded demo.
 
-These are internal-consistency results on synthetic derivations generated by our own code. They are not evidence of accuracy on real students. Numerical sampling is not a symbolic proof of equality. We have not run the model-only baseline and make no claim that this system outperforms a model.
+These are internal-consistency results on synthetic derivations generated by our own code. They are not evidence of accuracy on real students. Numerical sampling is not a symbolic proof of equality. We have not run the model-only baseline and make no claim that this system outperforms a model. [If you run `make baseline`, add its step accuracy, false alarms and run-to-run disagreements here, with the model name, whichever way they come out.]
 
 See [submission evidence](submission-evidence.md) for the reproduction command and limits.
 
@@ -51,4 +55,4 @@ Confirm the course convention, collect real derivations, run the model baseline 
 
 ## Built with
 
-Python, SymPy, mpmath, Deep Agents, Go, connect-go, gRPC, Protobuf, buf, Angular, TypeScript, KaTeX, PostgreSQL, Docker.
+Python, SymPy, mpmath, Deep Agents, LangChain, OpenRouter, Go, connect-go, gRPC, Protobuf, buf, Angular, TypeScript, KaTeX, anime.js, Playwright, PostgreSQL, Docker.
