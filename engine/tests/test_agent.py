@@ -68,3 +68,44 @@ async def test_invented_number_rejected():
 def test_number_check_allows_ordinals():
     assert unverified_numbers("1. first 2. second 3. third", []) == set()
     assert unverified_numbers("4 items", ["[1, 2]"]) == {4}
+
+
+async def _run_script(script, class_id="c1"):
+    model = ScriptedModel(script=script)
+    events = [e async for e in analyze_events(class_id, model=model, data=FakeData())]
+    return events, model
+
+
+async def test_one_revision_fixes_an_invented_number():
+    script = _script("Overview: 45 students did not flip h.") + [
+        AIMessage(content="Overview: 12 students did not flip h.")
+    ]
+    events, _ = await _run_script(script)
+    assert events[-1].WhichOneof("event") == "brief"
+    assert events[-1].brief.markdown == "Overview: 12 students did not flip h."
+
+
+async def test_revision_happens_once_then_rejects():
+    calls = []
+
+    class CountingModel(ScriptedModel):
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            calls.append([m.content for m in messages if m.type == "human"])
+            return super()._generate(messages, stop, run_manager, **kwargs)
+
+    model = CountingModel(script=_script("Overview: 45 students did not flip h."))
+    events = [e async for e in analyze_events("c1", model=model, data=FakeData())]
+    assert events[-1].error == "brief contained an unverified number"
+    revision_prompts = {p for human in calls for p in human if "no tool returned: 45" in p}
+    assert len(revision_prompts) == 1
+
+
+async def test_brief_may_repeat_the_class_id():
+    class_id = "3f2b9c61-0a47-4e85-9d2c-7b1e5a604c19"
+    events, _ = await _run_script(_script(f"Class {class_id}: 12 students did not flip h."), class_id)
+    assert events[-1].WhichOneof("event") == "brief"
+
+
+def test_number_check_accepts_given_text():
+    assert unverified_numbers("class 61 has 12", ["12"], given="class-61") == set()
+    assert unverified_numbers("class 61 has 12", ["12"]) == {61}

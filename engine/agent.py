@@ -186,10 +186,26 @@ def make_tools(data: ClassData):
 _INT = re.compile(r"\d+")
 
 
-def unverified_numbers(brief: str, tool_outputs: list[str]) -> set[int]:
-    """Integers in the brief that appear in no tool result of this run (1 to 3 allowed as ordinals)."""
-    seen = {int(n) for out in tool_outputs for n in _INT.findall(out)}
+def unverified_numbers(brief: str, tool_outputs: list[str], given: str = "") -> set[int]:
+    """Integers in the brief that appear in no tool result of this run (1 to 3 allowed as ordinals).
+
+    `given` is text the agent was handed rather than wrote, such as the class id: a brief may repeat
+    it (a UUID is full of digits) without that counting as an invented number.
+    """
+    seen = {int(n) for out in [*tool_outputs, given] for n in _INT.findall(out)}
     return {int(n) for n in _INT.findall(brief) if int(n) not in seen and not 1 <= int(n) <= 3}
+
+
+MAX_REVISIONS = 1
+
+
+def revision_request(bad: set[int]) -> str:
+    listed = ", ".join(str(n) for n in sorted(bad))
+    return (
+        f"Your brief contains numbers that no tool returned: {listed}. Rewrite the whole brief using only "
+        "numbers that appear in tool results. Do not add up, subtract or otherwise compute any number. "
+        "Reply with the brief only."
+    )
 
 
 # ----------------------------------------------------------------- stream
@@ -222,38 +238,46 @@ async def analyze_events(class_id: str, instruction: str = "", model=None, data:
     if instruction:
         prompt += f"\nInstructor's extra instruction: {instruction}"
 
+    messages: list = [{"role": "user", "content": prompt}]
     tool_outputs: list[str] = []
-    brief = None
-    try:
-        async for update in agent.astream({"messages": [{"role": "user", "content": prompt}]}, stream_mode="updates"):
-            for node in (update or {}).values():
-                for msg in (node or {}).get("messages", []) if isinstance(node, dict) else []:
-                    mtype = getattr(msg, "type", "")
-                    if mtype == "ai" and getattr(msg, "tool_calls", None):
-                        for call in msg.tool_calls:
-                            yield pb.AnalyzeResponse(
-                                tool_call=pb.ToolCallEvent(
-                                    name=call["name"], arguments_text=json.dumps(call.get("args", {}))
+    for attempt in range(MAX_REVISIONS + 1):
+        brief = None
+        try:
+            async for update in agent.astream({"messages": messages}, stream_mode="updates"):
+                for node in (update or {}).values():
+                    for msg in (node or {}).get("messages", []) if isinstance(node, dict) else []:
+                        messages.append(msg)
+                        mtype = getattr(msg, "type", "")
+                        if mtype == "ai" and getattr(msg, "tool_calls", None):
+                            for call in msg.tool_calls:
+                                yield pb.AnalyzeResponse(
+                                    tool_call=pb.ToolCallEvent(
+                                        name=call["name"], arguments_text=json.dumps(call.get("args", {}))
+                                    )
                                 )
+                        elif mtype == "tool":
+                            content = _text(msg.content)
+                            tool_outputs.append(content)
+                            yield pb.AnalyzeResponse(
+                                tool_result=pb.ToolResultEvent(name=msg.name or "", summary=content[:SUMMARY_CHARS])
                             )
-                    elif mtype == "tool":
-                        content = _text(msg.content)
-                        tool_outputs.append(content)
-                        yield pb.AnalyzeResponse(
-                            tool_result=pb.ToolResultEvent(name=msg.name or "", summary=content[:SUMMARY_CHARS])
-                        )
-                    elif mtype == "ai":
-                        text = _text(msg.content)
-                        if text.strip():
-                            brief = text
-    except Exception as e:  # model or tool failure is reported to the instructor, not raised
-        yield pb.AnalyzeResponse(error=f"agent failed: {type(e).__name__}: {e}")
-        return
+                        elif mtype == "ai":
+                            text = _text(msg.content)
+                            if text.strip():
+                                brief = text
+        except Exception as e:  # model or tool failure is reported to the instructor, not raised
+            yield pb.AnalyzeResponse(error=f"agent failed: {type(e).__name__}: {e}")
+            return
 
-    if brief is None:
-        yield pb.AnalyzeResponse(error="agent produced no brief")
-        return
-    if unverified_numbers(brief, tool_outputs):
-        yield pb.AnalyzeResponse(error="brief contained an unverified number")
-        return
+        if brief is None:
+            yield pb.AnalyzeResponse(error="agent produced no brief")
+            return
+        bad = unverified_numbers(brief, tool_outputs, given=class_id)
+        if not bad:
+            break
+        if attempt == MAX_REVISIONS:
+            yield pb.AnalyzeResponse(error="brief contained an unverified number")
+            return
+        # One revision in the same conversation, naming the numbers; the result is checked again.
+        messages.append({"role": "user", "content": revision_request(bad)})
     yield pb.AnalyzeResponse(brief=pb.BriefEvent(brief_id=str(uuid.uuid4()), markdown=brief))
