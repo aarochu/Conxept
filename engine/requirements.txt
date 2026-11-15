@@ -5,6 +5,7 @@ grpcio-tools>=1.85.1
 protobuf>=7.36.1
 deepagents>=0.7.38
 anthropic>=2.8.0
+langchain-openai>=1.8.0
 psycopg[binary]>=3.3.9
 pytest>=8
 pytest-asyncio>=0.24

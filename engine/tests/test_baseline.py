@@ -94,6 +94,8 @@ def test_scoring_and_engine_side():
 
 
 def test_end_to_end_with_fake_model(tmp_path, monkeypatch):
+    monkeypatch.delenv("BASELINE_MODEL", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     # A "model" that always says the first step is wrong: all false alarms, no determinism issues.
     client = fake_client(lambda p: {"first_wrong_step": 1, "misconception": "x"})
     monkeypatch.setattr("anthropic.Anthropic", lambda: client)

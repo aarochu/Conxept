@@ -11,10 +11,28 @@ Correctness is decided by sampling + `mpmath.quad`, never by the language model.
 | `synthetic.py` | Synthetic class generator (§8.1): one seeded RNG, valid rewrites, catalog and held-out errors, follow-through |
 | `remediation.py` | Practice-problem generator (§7.3): two verification routes, never returns unverified |
 | `agent.py` | Deep Agent for Analyze (§6.3): four tools, fixed system prompt, number check |
+| `llm.py` | Picks the model for Analyze and the baseline: `openrouter:<id>` or `anthropic:<id>`, and the key each needs |
+| `free_models.py` | Lists OpenRouter models that are free and support tool calling (`make free-models`) |
 | `server.py` | gRPC server: 4-worker process pool, 5 s per-diagnosis timeout |
 | `evaluate.py` | Engine-only evaluation on a synthetic class (§8.2 metrics) |
 
 Generated stubs go in `engine/gen/` (not committed).
+
+## Model for Analyze and the baseline (free option)
+
+Diagnosis never calls a model. Only Analyze (the instructor brief) and `make baseline` do, and
+either works with a free OpenRouter key:
+
+```bash
+export OPENROUTER_API_KEY=...        # from openrouter.ai; no credit needed for ":free" models
+make free-models                     # current free models that support tool calling
+export AGENT_MODEL=openrouter:<id>   # optional; blank uses llm.OPENROUTER_DEFAULT
+```
+
+With only `OPENROUTER_API_KEY` set, both default to a free model. With `ANTHROPIC_API_KEY` set,
+they default to Claude. Free models are rate-limited: the baseline retries on HTTP 429 and sends
+two requests at a time, and its ~200 calls can exceed a free daily allowance. Analyze keeps the
+number check, so a brief with an invented count is replaced by an error rather than shown.
 
 ## Run
 

@@ -27,7 +27,6 @@ SYSTEM_PROMPT = (
     "counts, and the practice problems."
 )
 
-DEFAULT_MODEL = "anthropic:claude-sonnet-5-5"
 SUMMARY_CHARS = 60
 _FAMILY_BY_ENUM = {f.enum: f for f in FAMILIES.values()}
 
@@ -211,10 +210,11 @@ def _text(content) -> str:
 async def analyze_events(class_id: str, instruction: str = "", model=None, data: ClassData | None = None):
     """Run the agent and yield AnalyzeResponse messages."""
     from deepagents import create_deep_agent
+    from llm import chat_model, resolve_model
     from misconception.v1 import engine_pb2 as pb
 
     agent = create_deep_agent(
-        model=model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL),
+        model=model or chat_model(resolve_model()),
         tools=make_tools(data or PostgresClassData()),
         system_prompt=SYSTEM_PROMPT,
     )

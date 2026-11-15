@@ -2,17 +2,20 @@
 
 Same submissions and ground truth for both systems:
   1. 100 submissions from the seed-7 synthetic class: 40 correct, 40 catalog errors, 20 held-out.
-  2. Each one goes to Claude with the problem, the correct answer, the student's steps and the
+  2. Each one goes to the model with the problem, the correct answer, the student's steps and the
      fixed prompt below. The model answers {"first_wrong_step", "misconception"}.
   3. Step accuracy and false alarms are scored automatically. The misconception name is scored by
      hand: results.csv has the catalog name next to the model's name, with an empty column to fill.
   4. The model runs twice on the same 100 to count disagreements; the engine runs twice as well.
 
-This calls the API ~200 times and costs real money. It never runs in CI.
+This calls the model ~200 times. It never runs in CI. With Anthropic it costs money; an
+`openrouter:<model>:free` model costs nothing but is rate-limited, so requests are retried and run
+two at a time.
 
 Usage:
   python baseline.py --dry-run                 # show the sample and one prompt, no API calls
-  python baseline.py --out baseline_out        # run (needs Anthropic credentials)
+  python baseline.py --out baseline_out        # run with ANTHROPIC_API_KEY, or OPENROUTER_API_KEY alone
+  python baseline.py --model openrouter:<id>   # pick an OpenRouter model (see `make free-models`)
 """
 
 from __future__ import annotations
@@ -23,11 +26,13 @@ import json
 import os
 import random
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from diagnose import CATALOG, STATUS_DIVERGED, STATUS_VALID, diagnose
+from llm import OPENROUTER_BASE_URL, OPENROUTER_DEFAULT, provider_of
 from problems import problem_from_id
 from synthetic import SyntheticSubmission, generate_class
 
@@ -49,6 +54,8 @@ ANSWER_SCHEMA = {
 
 DEFAULT_MODEL = "claude-opus-5-5"
 DEFAULT_EFFORT = "medium"
+OPENROUTER_WORKERS = 2  # free models are rate-limited; more parallel requests only add retries
+OPENROUTER_RETRIES = 6
 SAMPLE_SEED = 7
 CLASS_STUDENTS = 60
 MIX = {"correct": 40, "catalog": 40, "heldout": 20}
@@ -123,19 +130,62 @@ def ask_model(client, prompt: str, model: str, effort: str, use_fallbacks: bool 
     if response.stop_reason != "end_turn":
         return ModelAnswer(REFUSED, "", served_by=response.model, error=f"incomplete response: {response.stop_reason}")
     text = next((b.text for b in response.content if b.type == "text"), "")
+    return parse_answer(text, response.model)
+
+
+def parse_answer(text: str, served_by: str) -> ModelAnswer:
     try:
         data = json.loads(text)
         if not isinstance(data, dict) or type(data.get("first_wrong_step")) is not int or not 0 <= data["first_wrong_step"] <= 6 or not isinstance(data.get("misconception"), str):
             raise ValueError("answer must contain an integer step from 0 to 6 and a misconception string")
-        return ModelAnswer(data["first_wrong_step"], data["misconception"], served_by=response.model)
+        return ModelAnswer(data["first_wrong_step"], data["misconception"], served_by=served_by)
     except (ValueError, KeyError, TypeError) as e:
-        return ModelAnswer(REFUSED, "", served_by=response.model, error=f"unparseable answer: {e}")
+        return ModelAnswer(REFUSED, "", served_by=served_by, error=f"unparseable answer: {e}")
+
+
+def _json_object(text: str) -> str:
+    """The JSON object in a reply, without the code fences or prose some models add around it."""
+    start, end = text.find("{"), text.rfind("}")
+    return text[start : end + 1] if 0 <= start < end else text
+
+
+def ask_openrouter(client, prompt: str, model: str, sleep=time.sleep) -> ModelAnswer:
+    """One request through OpenRouter's OpenAI-compatible API, retrying on rate limits."""
+    import openai
+
+    name = model.split(":", 1)[1]
+    for attempt in range(OPENROUTER_RETRIES):
+        try:
+            response = client.chat.completions.create(
+                model=name, temperature=0, messages=[{"role": "user", "content": prompt}]
+            )
+            break
+        except openai.RateLimitError:
+            if attempt == OPENROUTER_RETRIES - 1:
+                raise
+            sleep(min(60, 5 * 2**attempt))
+    if not response.choices:
+        return ModelAnswer(REFUSED, "", served_by=name, error="empty response")
+    choice = response.choices[0]
+    served_by = getattr(response, "model", None) or name
+    if choice.finish_reason not in (None, "stop"):
+        return ModelAnswer(REFUSED, "", served_by=served_by, error=f"incomplete response: {choice.finish_reason}")
+    return parse_answer(_json_object(choice.message.content or ""), served_by)
 
 
 def run_model(client, sample, model, effort, runs, workers, use_fallbacks) -> list[list[ModelAnswer]]:
     prompts = [build_prompt(s) for s in sample]
 
     def one(prompt: str) -> ModelAnswer:
+        if provider_of(model) == "openrouter":
+            import openai
+
+            try:
+                return ask_openrouter(client, prompt, model)
+            except openai.APIStatusError as e:
+                return ModelAnswer(REFUSED, "", error=f"API {e.status_code}: {e.message}")
+            except openai.APIConnectionError as e:
+                return ModelAnswer(REFUSED, "", error=f"connection: {e}")
         import anthropic
 
         try:
@@ -279,10 +329,17 @@ def summary_markdown(sample, model, effort, model_runs, engine_runs) -> str:
 # ------------------------------------------------------------------- main
 
 
+def default_model() -> str:
+    """Claude when Anthropic credentials are set; otherwise a free OpenRouter model if that key is."""
+    if not os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("OPENROUTER_API_KEY"):
+        return OPENROUTER_DEFAULT
+    return DEFAULT_MODEL
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default="baseline_out", help="output directory")
-    ap.add_argument("--model", default=os.environ.get("BASELINE_MODEL", DEFAULT_MODEL))
+    ap.add_argument("--model", default=os.environ.get("BASELINE_MODEL") or default_model())
     ap.add_argument("--effort", default=os.environ.get("BASELINE_EFFORT", DEFAULT_EFFORT))
     ap.add_argument("--runs", type=int, default=2)
     ap.add_argument("--workers", type=int, default=8)
@@ -304,15 +361,27 @@ def main(argv=None) -> int:
         print(f"would send {len(sample) * args.runs} requests to {args.model}", file=sys.stderr)
         return 0
 
-    import anthropic
+    model, workers = args.model, args.workers
+    if provider_of(model) == "openrouter":
+        key = os.environ.get("OPENROUTER_API_KEY")
+        if not key:
+            ap.error(f"{model} needs OPENROUTER_API_KEY")
+        import openai
 
-    client = anthropic.Anthropic()  # resolves ANTHROPIC_API_KEY, an `ant auth login` profile, or WIF
+        client = openai.OpenAI(base_url=OPENROUTER_BASE_URL, api_key=key)
+        workers = min(workers, OPENROUTER_WORKERS)
+    else:
+        import anthropic
+
+        model = model.removeprefix("anthropic:")
+        client = anthropic.Anthropic()  # resolves ANTHROPIC_API_KEY, an `ant auth login` profile, or WIF
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    model_runs = run_model(client, sample, args.model, args.effort, args.runs, args.workers, not args.no_fallbacks)
+    model_runs = run_model(client, sample, model, args.effort, args.runs, workers, not args.no_fallbacks)
     engine_runs = run_engine(sample, runs=max(2, args.runs))
     write_csv(out / "results.csv", sample, model_runs, engine_runs)
-    report = summary_markdown(sample, args.model, args.effort, model_runs, engine_runs)
+    effort = "n/a" if provider_of(model) == "openrouter" else args.effort
+    report = summary_markdown(sample, args.model, effort, model_runs, engine_runs)
     (out / "summary.md").write_text(report)
     print(report)
     print(f"wrote {out / 'results.csv'} and {out / 'summary.md'}", file=sys.stderr)

@@ -49,7 +49,7 @@ export function errorMessage(e: unknown): string {
       case Code.Unavailable:
         return 'The gateway or engine is not reachable. Start them with `make engine` and `make gateway`.';
       case Code.FailedPrecondition:
-        return 'Analyze needs ANTHROPIC_API_KEY set in the engine’s environment.';
+        return 'Analyze needs OPENROUTER_API_KEY (free models work) or ANTHROPIC_API_KEY in the engine’s environment.';
       case Code.NotFound:
         return `Not found: ${e.rawMessage}`;
       default:
