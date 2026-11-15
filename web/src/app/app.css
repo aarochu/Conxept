@@ -20,6 +20,11 @@
 .brand:hover {
   text-decoration: none;
 }
+.brand img {
+  display: block;
+  height: 24px;
+  width: auto;
+}
 nav {
   display: flex;
   gap: 4px;

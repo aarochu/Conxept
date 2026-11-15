@@ -27,7 +27,7 @@ test('record a synthetic demo below two minutes without live Analyze', async ({ 
   const row = page.locator('tbody tr').first();
   await expect(row.getByRole('button', { name: 'Process', exact: true })).toBeVisible();
   await caption(
-    'Conxept: 60 students × 8 problems = 480 derivations. This walkthrough uses synthetic data.',
+    'ConXept: 60 students × 8 problems = 480 derivations. This walkthrough uses synthetic data.',
   );
 
   await at(10);

@@ -1,6 +1,11 @@
 <header class="top">
   <div class="inner">
-    <a class="brand" routerLink="/">Conxept</a>
+    <a class="brand" routerLink="/" aria-label="ConXept home">
+      <picture>
+        <source srcset="logo-dark.png" media="(prefers-color-scheme: dark)" />
+        <img src="logo.png" alt="ConXept" width="113" height="24" />
+      </picture>
+    </a>
     <nav>
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
         >Classes</a
