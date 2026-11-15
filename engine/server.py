@@ -318,8 +318,9 @@ async def serve(port: int = 50051) -> grpc.aio.Server:
 
 async def _main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    if not os.environ.get("WOLFRAM_APP_ID"):
-        log.info("WOLFRAM_APP_ID not set; Wolfram cross-check disabled")
+    import wolfram
+
+    wolfram.probe()  # before the worker pool starts, so a failed probe disables Wolfram there too
     server = await serve(int(os.environ.get("ENGINE_PORT", "50051")))
     await server.wait_for_termination()
 

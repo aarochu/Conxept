@@ -3,10 +3,14 @@
 For a misconception, return practice problems whose correct answer differs from
 the wrong answer that misconception produces, with answer keys checked by two
 independent routes. A problem is never returned with verified = False.
+
+When WOLFRAM_APP_ID is set and its probe passed, Wolfram is asked as a third route and
+"wolfram" is listed only when it agrees. Its answer never removes a problem.
 """
 
 from __future__ import annotations
 
+import logging
 import random
 from dataclasses import dataclass
 
@@ -16,6 +20,10 @@ import sympy as sp
 from diagnose import CATALOG, FAMILIES, NotComputable, equiv, values
 from parse_step import s, t, tau, to_latex, w
 from problems import Problem, problem_from_params
+
+import wolfram
+
+log = logging.getLogger("engine.remediation")
 
 _T_SAMPLES = (0.5, 1.3, 2.7)
 _W_SAMPLES = (-2.1, 0.7, 2.9)
@@ -82,6 +90,22 @@ def _verify(problem: Problem, key: sp.Expr) -> tuple[list[str], bool]:
     return ["formula", route], ok and formula_ok
 
 
+def _key_at(problem: Problem, key: sp.Expr):
+    """The key as a function of its variable, for comparing with Wolfram at real sample points."""
+    var = {"f1": t, "f2": t, "f3": w, "f4": s}[problem.family.key]
+    f = sp.lambdify(var, key, modules=[{"Heaviside": lambda x, *_: 1 if x > 0 else 0}, "mpmath"])
+    return lambda v: complex(f(v))
+
+
+def _wolfram_route(problem: Problem, key: sp.Expr) -> list[str]:
+    if not wolfram.enabled():
+        return []
+    agrees = wolfram.cross_check(problem.family.key, problem.params, _key_at(problem, key))
+    if agrees is False:
+        log.warning("Wolfram disagrees with the answer key for %s; kept on its two routes", problem.id)
+    return ["wolfram"] if agrees else []
+
+
 def generate_remediation(misconception_id: str, count: int = 3, seed: int = 0) -> list[RemediationResult]:
     if misconception_id not in CATALOG:
         raise KeyError(misconception_id)
@@ -110,7 +134,7 @@ def generate_remediation(misconception_id: str, count: int = 3, seed: int = 0) -
             RemediationResult(
                 problem=problem,
                 answer_key_latex=to_latex(key),
-                verification_routes=routes,
+                verification_routes=routes + _wolfram_route(problem, key),
                 verified=True,
                 why_it_discriminates=to_latex(wrong),
             )
