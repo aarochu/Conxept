@@ -4,11 +4,13 @@ import { ClassDashboard } from './pages/class-dashboard';
 import { ClassList } from './pages/class-list';
 import { ClusterPage } from './pages/cluster';
 import { EvaluationPage } from './pages/evaluation';
+import { LandingPage } from './pages/landing';
 import { SubmissionPage } from './pages/submission';
 import { TryPage } from './pages/try';
 
 export const routes: Routes = [
   { path: '', component: ClassList, title: 'Classes · Conxept' },
+  { path: 'welcome', component: LandingPage, title: 'Conxept' },
   { path: 'try', component: TryPage, title: 'Try a derivation · Conxept' },
   { path: 'class/:id', component: ClassDashboard, title: 'Dashboard · Conxept' },
   { path: 'class/:id/evaluation', component: EvaluationPage, title: 'Evaluation · Conxept' },
